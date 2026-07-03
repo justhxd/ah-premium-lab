@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>量化策略执行台</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="workspace-panel" aria-label="策略执行配置">
+        <div class="brand-block">
+          <div class="brand-mark">Q</div>
+          <div>
+            <h1>量化策略执行台</h1>
+            <p>选择策略、时间区间并查看回测结果</p>
+          </div>
+        </div>
+
+        <section class="panel-section">
+          <div class="section-heading">
+            <span>策略</span>
+            <button class="icon-button" type="button" aria-label="刷新策略列表" title="刷新策略列表">↻</button>
+          </div>
+          <label class="field">
+            <span>策略类型</span>
+            <select id="strategySelect">
+              <option value="ha-premium">H/A 溢价目标权重回测</option>
+            </select>
+          </label>
+          <div class="strategy-meta" id="strategyMeta">
+            每个交易日按 H/A 溢价排序，取前 10 只并根据 Top30 均值偏移分配仓位。
+          </div>
+        </section>
+
+        <section class="panel-section">
+          <div class="section-heading">
+            <span>时间与资金</span>
+          </div>
+          <div class="date-grid">
+            <label class="field">
+              <span>开始日期</span>
+              <input id="startDate" type="date" value="2025-07-02" />
+            </label>
+            <label class="field">
+              <span>结束日期</span>
+              <input id="endDate" type="date" value="2026-07-02" />
+            </label>
+          </div>
+          <label class="field">
+            <span>初始资金</span>
+            <input id="initialCash" type="number" value="1000000" min="10000" step="10000" />
+          </label>
+          <label class="field">
+            <span>总仓位上限</span>
+            <input id="grossExposure" type="range" min="20" max="100" value="100" step="5" />
+            <strong id="grossExposureValue">100%</strong>
+          </label>
+          <div class="switch-row">
+            <label>
+              <input id="refreshData" type="checkbox" />
+              <span>强制刷新行情缓存</span>
+            </label>
+            <label>
+              <input id="integerPercent" type="checkbox" />
+              <span>整数百分比权重</span>
+            </label>
+          </div>
+        </section>
+
+        <section class="panel-section command-preview">
+          <div class="section-heading">
+            <span>将执行命令</span>
+            <button class="icon-button" id="copyCommand" type="button" aria-label="复制命令" title="复制命令">⧉</button>
+          </div>
+          <code id="commandText"></code>
+        </section>
+
+        <button class="run-button" id="runButton" type="button">
+          <span class="run-icon">▶</span>
+          <span>开始执行</span>
+        </button>
+      </aside>
+
+      <section class="main-panel" aria-label="执行状态与结果">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">本地回测任务</p>
+            <h2 id="pageTitle">H/A 溢价目标权重回测</h2>
+          </div>
+          <div class="status-pill idle" id="statusPill">
+            <span></span>
+            <strong>待执行</strong>
+          </div>
+        </header>
+
+        <section class="summary-grid">
+          <div class="metric">
+            <span>预计样本</span>
+            <strong id="sampleDays">365 天</strong>
+            <small>按自然日估算</small>
+          </div>
+          <div class="metric">
+            <span>股票池</span>
+            <strong>完整 AH 池</strong>
+            <small>config/ah_pairs_full.csv</small>
+          </div>
+          <div class="metric">
+            <span>输出目录</span>
+            <strong id="outputDir">data/run_...</strong>
+            <small>执行完成后生成</small>
+          </div>
+          <div class="metric">
+            <span>报告</span>
+            <strong id="reportState">未生成</strong>
+            <small>AKQuant HTML</small>
+          </div>
+        </section>
+
+        <section class="execution-board">
+          <div class="board-header">
+            <div>
+              <h3>执行进度</h3>
+              <p id="progressCaption">选择参数后点击开始执行。</p>
+            </div>
+            <strong id="progressPercent">0%</strong>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <div id="progressBar"></div>
+          </div>
+          <ol class="steps" id="stepsList">
+            <li class="pending"><span>1</span><strong>校验参数</strong><em>等待</em></li>
+            <li class="pending"><span>2</span><strong>读取股票池</strong><em>等待</em></li>
+            <li class="pending"><span>3</span><strong>拉取或复用行情</strong><em>等待</em></li>
+            <li class="pending"><span>4</span><strong>生成权重</strong><em>等待</em></li>
+            <li class="pending"><span>5</span><strong>输出报告</strong><em>等待</em></li>
+          </ol>
+        </section>
+
+        <section class="results-area">
+          <div class="tabs" role="tablist" aria-label="结果视图">
+            <button class="active" data-tab="overview" type="button">概览</button>
+            <button data-tab="weights" type="button">目标持仓</button>
+            <button data-tab="files" type="button">输出文件</button>
+          </div>
+
+          <div class="tab-panel active" id="overview">
+            <div class="chart-panel">
+              <div class="panel-title">
+                <h3>仓位曲线</h3>
+                <span id="chartCaption">等待执行结果</span>
+              </div>
+              <canvas id="equityChart" width="960" height="260" aria-label="结果曲线"></canvas>
+            </div>
+            <div class="result-metrics">
+              <div><span>溢价记录</span><strong id="premiumRows">--</strong></div>
+              <div><span>权重记录</span><strong id="weightRows">--</strong></div>
+              <div><span>最新持仓数</span><strong id="positionCount">--</strong></div>
+              <div><span>最新仓位</span><strong id="latestExposure">--</strong></div>
+            </div>
+          </div>
+
+          <div class="tab-panel" id="weights">
+            <table>
+              <thead>
+                <tr>
+                  <th>标的</th>
+                  <th>名称</th>
+                  <th>H/A 溢价</th>
+                  <th>目标权重</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody id="weightsTable"></tbody>
+            </table>
+          </div>
+
+          <div class="tab-panel" id="files">
+            <div class="file-list" id="fileList">
+              <button type="button" disabled>akquant_ha_report.html</button>
+              <button type="button" disabled>strategy_description.md</button>
+              <button type="button" disabled>ha_premium_history.csv</button>
+              <button type="button" disabled>target_weights.csv</button>
+              <button type="button" disabled>last_premium_snapshot.csv</button>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

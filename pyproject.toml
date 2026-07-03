@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ha-akquant-backtest"
+version = "0.1.0"
+description = "H/A premium recomputation and AKQuant backtesting with AKShare data."
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "akshare>=1.18.63",
+    "akquant",
+    "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+ha-backtest = "ha_backtest.cli:main"
+ha-backtest-web = "ha_backtest.web:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+
