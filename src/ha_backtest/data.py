@@ -11,6 +11,7 @@ import pandas as pd
 
 
 DATE_FMT = "%Y%m%d"
+A_SHARE_ANNUAL_MA_WINDOW = 250
 
 
 @dataclass(frozen=True)
@@ -87,15 +88,24 @@ def build_ha_premium_history(
     cache_dir: Path,
     refresh: bool = False,
     fx_csv: Optional[Path] = None,
+    annual_ma_window: int = A_SHARE_ANNUAL_MA_WINDOW,
 ) -> pd.DataFrame:
     client = AkshareHistoryClient(cache_dir=Path(cache_dir), refresh=refresh)
     fx = read_fx_history(fx_csv) if fx_csv else client.fetch_hkd_cny(start_date, end_date)
+    a_start_date = _lookback_start_date(start_date, annual_ma_window)
 
     rows: List[pd.DataFrame] = []
     for pair in pairs:
-        a_hist = client.fetch_a_share(pair, start_date, end_date)
+        a_hist = client.fetch_a_share(pair, a_start_date, end_date)
         h_hist = client.fetch_h_share(pair, start_date, end_date)
-        merged = _merge_pair_history(pair, a_hist, h_hist, fx)
+        merged = _merge_pair_history(
+            pair,
+            a_hist,
+            h_hist,
+            fx,
+            start_date=start_date,
+            annual_ma_window=annual_ma_window,
+        )
         if not merged.empty:
             rows.append(merged)
 
@@ -567,6 +577,8 @@ def _merge_pair_history(
     a_hist: pd.DataFrame,
     h_hist: pd.DataFrame,
     fx: pd.DataFrame,
+    start_date: Optional[str] = None,
+    annual_ma_window: int = A_SHARE_ANNUAL_MA_WINDOW,
 ) -> pd.DataFrame:
     if a_hist.empty or h_hist.empty or fx.empty:
         return _empty_premium_frame()
@@ -575,6 +587,12 @@ def _merge_pair_history(
     h = h_hist[["date", "close"]].rename(columns={"close": "h_close_hkd"})
     a["date"] = pd.to_datetime(a["date"]).astype("datetime64[ns]")
     h["date"] = pd.to_datetime(h["date"]).astype("datetime64[ns]")
+    a = a.sort_values("date")
+    a["a_ma250"] = (
+        a["a_close"]
+        .rolling(window=annual_ma_window, min_periods=annual_ma_window)
+        .mean()
+    )
     fx = fx.copy()
     fx["date"] = pd.to_datetime(fx["date"]).astype("datetime64[ns]")
     merged = pd.merge(a, h, on="date", how="inner").sort_values("date")
@@ -590,6 +608,8 @@ def _merge_pair_history(
     merged["hkd_cny"] = merged["hkd_cny"].ffill().bfill()
     merged = merged.dropna(subset=["a_close", "h_close_hkd", "hkd_cny"])
     merged = merged[merged["a_close"] > 0].copy()
+    if start_date:
+        merged = merged[merged["date"] >= _parse_date(start_date)].copy()
     if merged.empty:
         return _empty_premium_frame()
 
@@ -607,6 +627,7 @@ def _merge_pair_history(
             "h_code",
             "trade_symbol",
             "a_close",
+            "a_ma250",
             "h_close_hkd",
             "hkd_cny",
             "h_close_cny",
@@ -667,6 +688,11 @@ def _format_date(value: pd.Timestamp) -> str:
     return value.strftime(DATE_FMT)
 
 
+def _lookback_start_date(start_date: str, window: int) -> str:
+    start = _parse_date(start_date)
+    return _format_date(start - pd.Timedelta(days=max(window * 2, 0)))
+
+
 def _date_key(value: object) -> str:
     return _parse_date(value).strftime("%Y-%m-%d")
 
@@ -684,6 +710,7 @@ def _empty_premium_frame() -> pd.DataFrame:
             "h_code",
             "trade_symbol",
             "a_close",
+            "a_ma250",
             "h_close_hkd",
             "hkd_cny",
             "h_close_cny",

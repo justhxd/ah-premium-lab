@@ -11,7 +11,7 @@ class HAPremiumStrategySpec:
     metadata = StrategyMetadata(
         id="ha-premium",
         name="H/A 溢价目标权重回测",
-        description="每个交易日按 H/A 溢价排序，取前 10 只并根据 Top30 均值偏移分配仓位。",
+        description="每个交易日先过滤 A 股收盘价高于 250 日均线的标的，再按 H/A 溢价排序取前 10 只并根据 Top30 均值偏移分配仓位。",
         command="run",
     )
 

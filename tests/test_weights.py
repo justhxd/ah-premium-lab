@@ -3,7 +3,7 @@
 import pandas as pd
 
 from ha_backtest.cli import _make_run_output_dir
-from ha_backtest.data import AHPair, AkshareHistoryClient, build_target_weights, load_ah_pairs, normalize_fx
+from ha_backtest.data import AHPair, AkshareHistoryClient, build_target_weights, load_ah_pairs, normalize_fx, _merge_pair_history
 from ha_backtest.runner import write_strategy_description
 
 
@@ -64,6 +64,51 @@ def test_build_target_weights_scales_offsets_when_total_exceeds_cap():
     assert weights["target_weight"].round(6).tolist() == [0.1] * 10
     assert round(float(weights["target_weight"].sum()), 6) == 1.0
 
+
+def test_build_target_weights_requires_a_share_close_above_annual_line():
+    rows = [
+        {
+            "date": "2026-07-01",
+            "a_code": f"SH600{i:03d}",
+            "trade_symbol": f"HK{i:05d}",
+            "premium_rate": float(32 - i),
+            "a_close": 20.0,
+            "a_ma250": 10.0,
+        }
+        for i in range(1, 32)
+    ]
+    rows[0]["a_close"] = 9.0
+
+    weights = build_target_weights(pd.DataFrame(rows))
+
+    assert list(weights["symbol"]) == [f"SH600{i:03d}" for i in range(2, 12)]
+    assert "SH600001" not in set(weights["symbol"])
+    assert (weights["a_close"] > weights["a_ma250"]).all()
+
+
+def test_merge_pair_history_adds_annual_line_after_lookback_and_trims_start_date():
+    pair = AHPair(name="Test", a_code="SH600001", h_code="00001")
+    a_hist = pd.DataFrame(
+        [
+            {"date": "2026-01-01", "close": 1.0},
+            {"date": "2026-01-02", "close": 2.0},
+            {"date": "2026-01-03", "close": 3.0},
+            {"date": "2026-01-04", "close": 4.0},
+            {"date": "2026-01-05", "close": 5.0},
+        ]
+    )
+    h_hist = pd.DataFrame(
+        [
+            {"date": "2026-01-04", "close": 8.0},
+            {"date": "2026-01-05", "close": 10.0},
+        ]
+    )
+    fx = pd.DataFrame([{"date": "2026-01-01", "hkd_cny": 1.0}])
+
+    merged = _merge_pair_history(pair, a_hist, h_hist, fx, start_date="20260104", annual_ma_window=3)
+
+    assert merged["date"].dt.strftime("%Y-%m-%d").tolist() == ["2026-01-04", "2026-01-05"]
+    assert merged["a_ma250"].tolist() == [3.0, 4.0]
 
 def test_normalize_fx_converts_100_hkd_quote_to_single_hkd():
     raw = pd.DataFrame({"date": ["2026-07-01"], "close": [91.25]})
