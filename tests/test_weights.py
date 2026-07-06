@@ -4,6 +4,7 @@ import pandas as pd
 
 from ha_backtest.cli import _make_run_output_dir
 from ha_backtest.data import AHPair, AkshareHistoryClient, build_target_weights, load_ah_pairs, normalize_fx, _merge_pair_history
+from ha_backtest.core.registry import list_strategy_metadata
 from ha_backtest.runner import write_strategy_description
 
 
@@ -65,7 +66,12 @@ def test_build_target_weights_scales_offsets_when_total_exceeds_cap():
     assert round(float(weights["target_weight"].sum()), 6) == 1.0
 
 
-def test_build_target_weights_requires_a_share_close_above_annual_line():
+def test_strategy_registry_exposes_annual_line_variant_for_web_ui():
+    ids = [metadata.id for metadata in list_strategy_metadata()]
+
+    assert ids == ["ha-premium", "ha-premium-annual-line"]
+
+def test_build_target_weights_applies_annual_line_after_top10_weighting():
     rows = [
         {
             "date": "2026-07-01",
@@ -81,10 +87,40 @@ def test_build_target_weights_requires_a_share_close_above_annual_line():
 
     weights = build_target_weights(pd.DataFrame(rows))
 
-    assert list(weights["symbol"]) == [f"SH600{i:03d}" for i in range(2, 12)]
+    assert list(weights["symbol"]) == [f"SH600{i:03d}" for i in range(2, 11)]
     assert "SH600001" not in set(weights["symbol"])
+    assert "SH600011" not in set(weights["symbol"])
+    assert weights["target_weight"].round(6).tolist() == [
+        0.135,
+        0.125,
+        0.115,
+        0.105,
+        0.095,
+        0.085,
+        0.075,
+        0.065,
+        0.055,
+    ]
     assert (weights["a_close"] > weights["a_ma250"]).all()
 
+
+def test_build_target_weights_can_disable_annual_line_gate_for_base_strategy():
+    rows = [
+        {
+            "date": "2026-07-01",
+            "a_code": f"SH600{i:03d}",
+            "trade_symbol": f"HK{i:05d}",
+            "premium_rate": float(32 - i),
+            "a_close": 20.0,
+            "a_ma250": 10.0,
+        }
+        for i in range(1, 32)
+    ]
+    rows[0]["a_close"] = 9.0
+
+    weights = build_target_weights(pd.DataFrame(rows), annual_line_filter=False)
+
+    assert list(weights["symbol"][:10]) == [f"SH600{i:03d}" for i in range(1, 11)]
 
 def test_merge_pair_history_adds_annual_line_after_lookback_and_trims_start_date():
     pair = AHPair(name="Test", a_code="SH600001", h_code="00001")

@@ -13,15 +13,15 @@ def build_target_weights(
     min_premium: float = 0.0,
     gross_exposure: float = 1.0,
     integer_percent: bool = False,
+    annual_line_filter: bool = True,
 ) -> pd.DataFrame:
     if premium_df.empty:
         return _empty_weight_frame()
 
-    source = _mark_annual_line_filter(premium_df)
+    source = premium_df.copy()
     frames: List[pd.DataFrame] = []
     for date, group in source.groupby("date", sort=True):
-        ranked = group.dropna(subset=["premium_rate"])
-        ranked = ranked[ranked["_above_annual_line"]].sort_values("premium_rate", ascending=False).copy()
+        ranked = group.dropna(subset=["premium_rate"]).sort_values("premium_rate", ascending=False).copy()
         if ranked.empty:
             continue
 
@@ -57,6 +57,10 @@ def build_target_weights(
                     candidates["target_weight"].tolist(), gross_exposure=current_exposure
                 )
 
+        candidates = _apply_annual_line_trade_gate(candidates, enabled=annual_line_filter)
+        if candidates.empty:
+            continue
+
         frames.append(candidates[[column for column in _WEIGHT_COLUMNS if column in candidates]])
 
     if not frames:
@@ -64,15 +68,13 @@ def build_target_weights(
     return pd.concat(frames, ignore_index=True)
 
 
-def _mark_annual_line_filter(premium_df: pd.DataFrame) -> pd.DataFrame:
-    frame = premium_df.copy()
-    if {"a_close", "a_ma250"}.issubset(frame.columns):
-        frame["_above_annual_line"] = pd.to_numeric(frame["a_close"], errors="coerce") > pd.to_numeric(
-            frame["a_ma250"], errors="coerce"
-        )
-    else:
-        frame["_above_annual_line"] = True
-    return frame
+def _apply_annual_line_trade_gate(candidates: pd.DataFrame, enabled: bool) -> pd.DataFrame:
+    if not enabled or not {"a_close", "a_ma250"}.issubset(candidates.columns):
+        return candidates
+    above_annual_line = pd.to_numeric(candidates["a_close"], errors="coerce") > pd.to_numeric(
+        candidates["a_ma250"], errors="coerce"
+    )
+    return candidates[above_annual_line].copy()
 
 
 def _empty_weight_frame() -> pd.DataFrame:

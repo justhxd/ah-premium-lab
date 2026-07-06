@@ -8,10 +8,11 @@ from .features import build_premium_and_weights
 
 
 class HAPremiumStrategySpec:
+    annual_line_filter = False
     metadata = StrategyMetadata(
         id="ha-premium",
         name="H/A 溢价目标权重回测",
-        description="每个交易日先过滤 A 股收盘价高于 250 日均线的标的，再按 H/A 溢价排序取前 10 只并根据 Top30 均值偏移分配仓位。",
+        description="每个交易日按 H/A 溢价排序，取前 10 只并根据 Top30 均值偏移分配仓位。",
         command="run",
     )
 
@@ -27,6 +28,7 @@ class HAPremiumStrategySpec:
             min_premium=request.min_premium,
             gross_exposure=request.gross_exposure,
             integer_percent=request.integer_percent,
+            annual_line_filter=self.annual_line_filter,
         )
 
     def run(self, request: StrategyRunRequest) -> StrategyRunResult:
@@ -57,6 +59,7 @@ class HAPremiumStrategySpec:
             gross_exposure=request.gross_exposure,
             integer_percent=request.integer_percent,
             report=request.report,
+            annual_line_filter=self.annual_line_filter,
         )
 
         if request.report:
@@ -76,3 +79,13 @@ class HAPremiumStrategySpec:
             engine_result=result,
             run_summary=str(result),
         )
+
+
+class HAPremiumAnnualLineStrategySpec(HAPremiumStrategySpec):
+    annual_line_filter = True
+    metadata = StrategyMetadata(
+        id="ha-premium-annual-line",
+        name="H/A 溢价年线过滤回测",
+        description="每个交易日先按 H/A 溢价排序取前 10 只并根据 Top30 均值偏移计算仓位，再仅对 A 股收盘价高于 250 日均线的标的执行目标仓位。",
+        command="run",
+    )

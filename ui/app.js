@@ -2,7 +2,12 @@ let strategies = {
   "ha-premium": {
     title: "H/A 溢价目标权重回测",
     command: "run",
-    description: "每个交易日先过滤 A 股收盘价高于 250 日均线的标的，再按 H/A 溢价排序取前 10 只并根据 Top30 均值偏移分配仓位。",
+    description: "每个交易日按 H/A 溢价排序，取前 10 只并根据 Top30 均值偏移分配仓位。",
+  },
+  "ha-premium-annual-line": {
+    title: "H/A 溢价年线过滤回测",
+    command: "run",
+    description: "每个交易日先按 H/A 溢价排序取前 10 只并根据 Top30 均值偏移计算仓位，再仅对 A 股收盘价高于 250 日均线的标的执行目标仓位。",
   },
 };
 

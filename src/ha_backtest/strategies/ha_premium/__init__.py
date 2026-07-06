@@ -1,3 +1,3 @@
-from .spec import HAPremiumStrategySpec
+from .spec import HAPremiumAnnualLineStrategySpec, HAPremiumStrategySpec
 
-__all__ = ["HAPremiumStrategySpec"]
+__all__ = ["HAPremiumAnnualLineStrategySpec", "HAPremiumStrategySpec"]

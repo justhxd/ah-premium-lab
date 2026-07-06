@@ -20,6 +20,7 @@ def build_premium_and_weights(
     min_premium: float = 0.0,
     gross_exposure: float = 1.0,
     integer_percent: bool = False,
+    annual_line_filter: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     output_dir.mkdir(parents=True, exist_ok=True)
     premium = build_ha_premium_history(
@@ -35,6 +36,7 @@ def build_premium_and_weights(
         min_premium=min_premium,
         gross_exposure=gross_exposure,
         integer_percent=integer_percent,
+        annual_line_filter=annual_line_filter,
     )
     premium.to_csv(output_dir / "ha_premium_history.csv", index=False, encoding="utf-8-sig")
     weights.to_csv(output_dir / "target_weights.csv", index=False, encoding="utf-8-sig")

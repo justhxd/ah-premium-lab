@@ -121,6 +121,7 @@ def build_target_weights(
     min_premium: float = 0.0,
     gross_exposure: float = 1.0,
     integer_percent: bool = False,
+    annual_line_filter: bool = True,
 ) -> pd.DataFrame:
     from .strategies.ha_premium.weights import build_target_weights as _build_target_weights
 
@@ -129,6 +130,7 @@ def build_target_weights(
         min_premium=min_premium,
         gross_exposure=gross_exposure,
         integer_percent=integer_percent,
+        annual_line_filter=annual_line_filter,
     )
 
 def build_a_share_market_data(

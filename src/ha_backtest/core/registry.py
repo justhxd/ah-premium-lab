@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from .context import StrategyMetadata, StrategyRunRequest, StrategyRunResult
-from ..strategies.ha_premium import HAPremiumStrategySpec
+from ..strategies.ha_premium import HAPremiumAnnualLineStrategySpec, HAPremiumStrategySpec
 
 
 class StrategySpec(Protocol):
@@ -15,6 +15,7 @@ class StrategySpec(Protocol):
 
 _STRATEGIES: dict[str, StrategySpec] = {
     HAPremiumStrategySpec.metadata.id: HAPremiumStrategySpec(),
+    HAPremiumAnnualLineStrategySpec.metadata.id: HAPremiumAnnualLineStrategySpec(),
 }
 
 
