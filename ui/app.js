@@ -621,8 +621,12 @@ const historyEls = {
   navButtons: Array.from(document.querySelectorAll(".view-switch button")),
   panels: Array.from(document.querySelectorAll(".view-panel")),
   strategyFilter: document.querySelector("#historyStrategyFilter"),
-  cashFilter: document.querySelector("#historyCashFilter"),
-  reportFilter: document.querySelector("#historyReportFilter"),
+  startFilter: document.querySelector("#historyStartFilter"),
+  endFilter: document.querySelector("#historyEndFilter"),
+  totalReturnFilter: document.querySelector("#historyTotalReturnFilter"),
+  annualizedReturnFilter: document.querySelector("#historyAnnualizedReturnFilter"),
+  maxDrawdownFilter: document.querySelector("#historyMaxDrawdownFilter"),
+  sharpeFilter: document.querySelector("#historySharpeFilter"),
   count: document.querySelector("#historyCount"),
   tableBody: document.querySelector("#historyTableBody"),
   detailStatus: document.querySelector("#historyDetailStatus"),
@@ -665,7 +669,7 @@ async function loadHistory() {
     const response = await fetch("/api/history");
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "\u8bfb\u53d6\u5386\u53f2\u56de\u6d4b\u5931\u8d25\u3002");
-    historyRuns = payload.runs || [];
+    historyRuns = (payload.runs || []).filter((run) => run.reportReady);
     if (!historyRuns.find((run) => run.id === selectedHistoryRunId)) selectedHistoryRunId = historyRuns[0]?.id || null;
   } catch (error) {
     historyRuns = [];
@@ -679,20 +683,56 @@ async function loadHistory() {
 
 function getFilteredHistoryRuns() {
   const strategy = historyEls.strategyFilter.value;
-  const cash = historyEls.cashFilter.value;
-  const report = historyEls.reportFilter.value;
+  const startDate = historyEls.startFilter.value;
+  const endDate = historyEls.endFilter.value;
+  const minTotalReturn = parseHistoryFilterNumber(historyEls.totalReturnFilter.value);
+  const minAnnualizedReturn = parseHistoryFilterNumber(historyEls.annualizedReturnFilter.value);
+  const maxDrawdown = parseHistoryFilterNumber(historyEls.maxDrawdownFilter.value);
+  const minSharpe = parseHistoryFilterNumber(historyEls.sharpeFilter.value);
 
   return historyRuns.filter((run) => {
+    if (!run.reportReady) return false;
     if (strategy !== "all" && run.strategy !== strategy) return false;
-    const initialCash = Number(run.initialCash);
-    if (cash !== "all" && Number.isNaN(initialCash)) return false;
-    if (cash === "lt100" && initialCash >= 1000000) return false;
-    if (cash === "100to500" && (initialCash < 1000000 || initialCash > 5000000)) return false;
-    if (cash === "gte500" && initialCash < 5000000) return false;
-    if (report === "ready" && !run.reportReady) return false;
-    if (report === "missing" && run.reportReady) return false;
+    if (startDate && normalizeHistoryDate(run.startDate) < startDate) return false;
+    if (endDate && normalizeHistoryDate(run.endDate) > endDate) return false;
+
+    const metrics = run.reportMetrics || {};
+    if (!passesMinimumMetric(metrics.totalReturn, minTotalReturn)) return false;
+    if (!passesMinimumMetric(metrics.annualizedReturn, minAnnualizedReturn)) return false;
+    if (!passesMaximumMetric(metrics.maxDrawdown, maxDrawdown)) return false;
+    if (!passesMinimumMetric(metrics.sharpe, minSharpe)) return false;
     return true;
   });
+}
+
+function parseHistoryFilterNumber(value) {
+  const text = String(value || "").trim();
+  if (!text) return null;
+  const number = Number(text);
+  return Number.isNaN(number) ? null : number;
+}
+
+function parseHistoryMetric(value) {
+  const text = String(value || "").replace(/,/g, "").replace(/%/g, "").trim();
+  if (!text || text === "--") return null;
+  const number = Number(text);
+  return Number.isNaN(number) ? null : number;
+}
+
+function passesMinimumMetric(value, minimum) {
+  if (minimum === null) return true;
+  const metric = parseHistoryMetric(value);
+  return metric !== null && metric >= minimum;
+}
+
+function passesMaximumMetric(value, maximum) {
+  if (maximum === null) return true;
+  const metric = parseHistoryMetric(value);
+  return metric !== null && Math.abs(metric) <= maximum;
+}
+
+function normalizeHistoryDate(value) {
+  return String(value || "").slice(0, 10);
 }
 
 function renderHistory() {
@@ -792,8 +832,12 @@ historyEls.navButtons.forEach((button) => {
 
 [
   historyEls.strategyFilter,
-  historyEls.cashFilter,
-  historyEls.reportFilter,
+  historyEls.startFilter,
+  historyEls.endFilter,
+  historyEls.totalReturnFilter,
+  historyEls.annualizedReturnFilter,
+  historyEls.maxDrawdownFilter,
+  historyEls.sharpeFilter,
 ].forEach((control) => control.addEventListener("input", renderHistory));
 
 syncHistoryStrategyOptions();

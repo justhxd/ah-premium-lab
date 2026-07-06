@@ -1,6 +1,6 @@
 import json
 
-from ha_backtest.web import HISTORY_METADATA_FILE, _history_record
+from ha_backtest.web import HISTORY_METADATA_FILE, _history_page_runs, _history_record
 
 
 def test_history_record_includes_akquant_report_metrics(tmp_path):
@@ -45,3 +45,13 @@ def test_history_record_includes_akquant_report_metrics(tmp_path):
         'maxDrawdown': '-5.43%',
         'sharpe': '1.23',
     }
+
+
+def test_history_page_runs_excludes_missing_reports():
+    runs = [
+        {'id': 'run_ready', 'reportReady': True},
+        {'id': 'run_missing', 'reportReady': False},
+        {'id': 'run_unknown'},
+    ]
+
+    assert _history_page_runs(runs) == [{'id': 'run_ready', 'reportReady': True}]

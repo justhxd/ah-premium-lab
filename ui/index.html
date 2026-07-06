@@ -244,24 +244,34 @@
           </label>
 
           <label class="field">
-            <span>初始资金</span>
-            <select id="historyCashFilter">
-              <option value="all">全部资金</option>
-              <option value="lt100">100 万以下</option>
-              <option value="100to500">100 万至 500 万</option>
-              <option value="gte500">500 万及以上</option>
-            </select>
+            <span>回测开始</span>
+            <input id="historyStartFilter" type="date" />
           </label>
 
           <label class="field">
-            <span>报告状态</span>
-            <select id="historyReportFilter">
-              <option value="all">全部</option>
-              <option value="ready">已有 AKQuant 报告</option>
-              <option value="missing">报告缺失</option>
-            </select>
+            <span>回测结束</span>
+            <input id="historyEndFilter" type="date" />
           </label>
 
+          <label class="field">
+            <span>累计收益率不低于(%)</span>
+            <input id="historyTotalReturnFilter" type="number" step="0.01" placeholder="不限" />
+          </label>
+
+          <label class="field">
+            <span>年化收益率不低于(%)</span>
+            <input id="historyAnnualizedReturnFilter" type="number" step="0.01" placeholder="不限" />
+          </label>
+
+          <label class="field">
+            <span>最大回撤不超过(%)</span>
+            <input id="historyMaxDrawdownFilter" type="number" step="0.01" placeholder="不限" />
+          </label>
+
+          <label class="field">
+            <span>夏普比率不低于</span>
+            <input id="historySharpeFilter" type="number" step="0.01" placeholder="不限" />
+          </label>
         </section>
 
         <section class="history-layout">

@@ -121,7 +121,7 @@ class BacktestRequestHandler(SimpleHTTPRequestHandler):
         self._send_json({"strategies": strategies})
 
     def _handle_get_history(self) -> None:
-        self._send_json({"runs": _list_history_runs()})
+        self._send_json({"runs": _history_page_runs(_list_history_runs())})
 
     def _handle_get_status(self) -> None:
         self._send_json(_status_payload())
@@ -392,6 +392,10 @@ def _positive_float(value: Any, label: str) -> float:
         raise ValueError(f"{label}必须大于 0。")
     return number
 
+
+
+def _history_page_runs(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [run for run in runs if run.get("reportReady")]
 
 
 def _list_history_runs() -> list[dict[str, Any]]:
