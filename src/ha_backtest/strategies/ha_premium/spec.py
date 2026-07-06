@@ -11,7 +11,7 @@ class HAPremiumStrategySpec:
     annual_line_filter = False
     metadata = StrategyMetadata(
         id="ha-premium",
-        name="H/A 溢价目标权重回测",
+        name="H/A 溢价目标权重",
         description="每个交易日按 H/A 溢价排序，取前 10 只并根据 Top30 均值偏移分配仓位。",
         command="run",
     )
@@ -65,6 +65,7 @@ class HAPremiumStrategySpec:
         if request.report:
             report_path = request.output_dir / "akquant_ha_report.html"
             result.report(filename=str(report_path), show=False)
+            _retitle_akquant_report(report_path, f"{self.metadata.name}回测报告")
 
         if not premium.empty:
             last_date = premium["date"].max()
@@ -85,7 +86,15 @@ class HAPremiumAnnualLineStrategySpec(HAPremiumStrategySpec):
     annual_line_filter = True
     metadata = StrategyMetadata(
         id="ha-premium-annual-line",
-        name="H/A 溢价年线过滤回测",
+        name="H/A 溢价年线过滤",
         description="每个交易日先按 H/A 溢价排序取前 10 只并根据 Top30 均值偏移计算仓位，再仅对 A 股收盘价高于 250 日均线的标的执行目标仓位。",
         command="run",
     )
+
+
+def _retitle_akquant_report(report_path, title: str) -> None:
+    if not report_path.exists():
+        return
+    html = report_path.read_text(encoding="utf-8", errors="ignore")
+    html = html.replace("AKQuant 策略回测报告", title)
+    report_path.write_text(html, encoding="utf-8")
