@@ -1,11 +1,11 @@
 let strategies = {
   "ha-premium": {
-    title: "H/A 溢价目标权重回测",
+    title: "H/A 溢价目标权重",
     command: "run",
     description: "每个交易日按 H/A 溢价排序，取前 10 只并根据 Top30 均值偏移分配仓位。",
   },
   "ha-premium-annual-line": {
-    title: "H/A 溢价年线过滤回测",
+    title: "H/A 溢价年线过滤",
     command: "run",
     description: "每个交易日先按 H/A 溢价排序取前 10 只并根据 Top30 均值偏移计算仓位，再仅对 A 股收盘价高于 250 日均线的标的执行目标仓位。",
   },
@@ -17,30 +17,31 @@ const els = {
   startDate: document.querySelector("#startDate"),
   endDate: document.querySelector("#endDate"),
   initialCash: document.querySelector("#initialCash"),
-  grossExposure: document.querySelector("#grossExposure"),
-  grossExposureValue: document.querySelector("#grossExposureValue"),
   refreshData: document.querySelector("#refreshData"),
-  integerPercent: document.querySelector("#integerPercent"),
   commandText: document.querySelector("#commandText"),
   copyCommand: document.querySelector("#copyCommand"),
   runButton: document.querySelector("#runButton"),
   pageTitle: document.querySelector("#pageTitle"),
   statusPill: document.querySelector("#statusPill"),
   sampleDays: document.querySelector("#sampleDays"),
+  outputCard: document.querySelector("#outputCard"),
   outputDir: document.querySelector("#outputDir"),
+  outputHint: document.querySelector("#outputHint"),
+  reportCard: document.querySelector("#reportCard"),
   reportState: document.querySelector("#reportState"),
+  reportHint: document.querySelector("#reportHint"),
   progressCaption: document.querySelector("#progressCaption"),
   progressPercent: document.querySelector("#progressPercent"),
   progressBar: document.querySelector("#progressBar"),
-  steps: Array.from(document.querySelectorAll("#stepsList li")),
-  premiumRows: document.querySelector("#premiumRows"),
-  weightRows: document.querySelector("#weightRows"),
-  positionCount: document.querySelector("#positionCount"),
-  latestExposure: document.querySelector("#latestExposure"),
+  totalReturn: document.querySelector("#totalReturn"),
+  annualizedReturn: document.querySelector("#annualizedReturn"),
+  maxDrawdown: document.querySelector("#maxDrawdown"),
+  sharpeRatio: document.querySelector("#sharpeRatio"),
   weightsTable: document.querySelector("#weightsTable"),
-  fileButtons: Array.from(document.querySelectorAll("#fileList button")),
-  chartCaption: document.querySelector("#chartCaption"),
-  canvas: document.querySelector("#equityChart"),
+  reportChartCaption: document.querySelector("#reportChartCaption"),
+  exposureChartCaption: document.querySelector("#exposureChartCaption"),
+  reportCanvas: document.querySelector("#reportEquityChart"),
+  exposureCanvas: document.querySelector("#exposureChart"),
 };
 
 let pollTimer = null;
@@ -72,12 +73,13 @@ function buildCommand() {
     parts.push("--initial-cash", String(Number(els.initialCash.value || 0)));
   }
 
-  parts.push("--gross-exposure", (Number(els.grossExposure.value) / 100).toFixed(2));
-
   if (els.refreshData.checked) parts.push("--refresh");
-  if (els.integerPercent.checked) parts.push("--integer-percent");
 
   return parts.join(" ");
+}
+
+function cleanStrategyTitle(title) {
+  return String(title || "").replaceAll("回测", "");
 }
 
 function syncForm() {
@@ -85,7 +87,6 @@ function syncForm() {
   if (!strategy) return;
   els.pageTitle.textContent = strategy.title;
   els.strategyMeta.textContent = strategy.description;
-  els.grossExposureValue.textContent = `${els.grossExposure.value}%`;
   els.sampleDays.textContent = `${getDurationDays()} 天`;
   els.commandText.textContent = buildCommand();
 }
@@ -104,44 +105,24 @@ function resetResult() {
   els.progressPercent.textContent = "0%";
   els.progressBar.style.width = "0%";
   els.progressCaption.textContent = "选择参数后点击开始执行。";
-  els.outputDir.textContent = "data/run_...";
+  setOutputDirectory(null, null);
+  els.reportCard.disabled = true;
+  els.reportCard.classList.remove("ready");
+  els.reportCard.onclick = null;
+  els.reportCard.setAttribute("aria-label", "AKQuant 报告未生成");
   els.reportState.textContent = "未生成";
-  els.premiumRows.textContent = "--";
-  els.weightRows.textContent = "--";
-  els.positionCount.textContent = "--";
-  els.latestExposure.textContent = "--";
-  els.chartCaption.textContent = "等待执行结果";
+  els.reportHint.textContent = "AKQuant HTML";
+  els.totalReturn.textContent = "--";
+  els.annualizedReturn.textContent = "--";
+  els.maxDrawdown.textContent = "--";
+  els.sharpeRatio.textContent = "--";
+  els.reportChartCaption.textContent = "";
+  els.exposureChartCaption.textContent = "等待执行结果";
   els.weightsTable.innerHTML = emptyTableRow("执行完成后显示最新目标持仓。", 5);
-  els.steps.forEach((step) => {
-    step.className = "pending";
-    step.querySelector("em").textContent = "等待";
-  });
-  els.fileButtons.forEach((button) => {
-    button.disabled = true;
-    button.classList.remove("ready");
-    button.onclick = null;
-  });
-  drawChart([]);
+  drawLineChart(els.reportCanvas, [], { emptyText: "执行完成后显示 AKQuant 权益曲线", xLabel: "日期", yLabel: "权益" });
+  drawLineChart(els.exposureCanvas, [], { emptyText: "执行完成后显示每日目标仓位", xLabel: "日期", yLabel: "仓位", minValue: 0, maxValue: 1 });
 }
 
-function updateStep(progress, status) {
-  const activeIndex = Math.min(4, Math.floor(progress / 20));
-  els.steps.forEach((step, index) => {
-    if (status === "failed") {
-      step.className = index === activeIndex ? "active" : index < activeIndex ? "done" : "pending";
-      step.querySelector("em").textContent = index === activeIndex ? "失败" : index < activeIndex ? "完成" : "等待";
-    } else if (progress >= 100 || index < activeIndex) {
-      step.className = "done";
-      step.querySelector("em").textContent = "完成";
-    } else if (index === activeIndex) {
-      step.className = "active";
-      step.querySelector("em").textContent = "执行中";
-    } else {
-      step.className = "pending";
-      step.querySelector("em").textContent = "等待";
-    }
-  });
-}
 
 function requestPayload() {
   return {
@@ -149,9 +130,7 @@ function requestPayload() {
     startDate: els.startDate.value,
     endDate: els.endDate.value,
     initialCash: Number(els.initialCash.value || 0),
-    grossExposure: Number(els.grossExposure.value) / 100,
     refreshData: els.refreshData.checked,
-    integerPercent: els.integerPercent.checked,
   };
 }
 
@@ -211,8 +190,7 @@ function applyJob(job) {
   els.progressPercent.textContent = `${progress}%`;
   els.progressBar.style.width = `${progress}%`;
   els.progressCaption.textContent = job.error || job.message || "任务状态更新中。";
-  if (job.output_dir) els.outputDir.textContent = job.output_dir;
-  updateStep(progress, job.status);
+  if (job.output_dir) setOutputDirectory(job, false);
 
   if (job.status === "queued" || job.status === "running") setStatus("running", "执行中");
   if (job.status === "completed") {
@@ -222,19 +200,60 @@ function applyJob(job) {
   if (job.status === "failed") setStatus("idle", "执行失败");
 }
 
+function setOutputDirectory(job, ready, outputPath) {
+  if (!job || (!outputPath && ready !== false)) {
+    els.outputCard.disabled = true;
+    els.outputCard.classList.remove("ready");
+    els.outputCard.onclick = null;
+    els.outputCard.removeAttribute("title");
+    els.outputCard.setAttribute("aria-label", "\u8f93\u51fa\u76ee\u5f55\u672a\u751f\u6210");
+    els.outputDir.textContent = "\u5f85\u751f\u6210";
+    els.outputHint.textContent = "\u6267\u884c\u5b8c\u6210\u540e\u751f\u6210";
+    return;
+  }
+
+  const path = outputPath || job.output_dir || "";
+  els.outputCard.title = path;
+  els.outputCard.classList.toggle("ready", Boolean(ready));
+  els.outputCard.disabled = !ready;
+  els.outputCard.setAttribute("aria-label", ready ? "打开报告所在文件夹" : "输出目录已创建，等待任务完成");
+  els.outputDir.textContent = ready ? "\u6253\u5f00\u76ee\u5f55" : "\u5df2\u521b\u5efa";
+  els.outputHint.textContent = ready ? "点击打开报告所在文件夹" : "\u7b49\u5f85\u4efb\u52a1\u5b8c\u6210";
+  els.outputCard.onclick = ready ? () => openOutputDirectory(job.id) : null;
+}
+
+async function openOutputDirectory(jobId) {
+  try {
+    const response = await fetch(`/api/jobs/${jobId}/open-output-dir`, { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "\u6253\u5f00\u8f93\u51fa\u76ee\u5f55\u5931\u8d25\u3002");
+    els.outputHint.textContent = "已请求打开报告所在文件夹";
+  } catch (error) {
+    els.outputHint.textContent = error.message;
+  }
+}
+
 function renderResult(job) {
   const result = job.result || {};
   const metrics = result.metrics || {};
-  els.outputDir.textContent = result.outputDir || job.output_dir || "--";
-  els.reportState.textContent = hasFile(result, "akquant_ha_report.html") ? "已生成" : "未生成";
-  els.premiumRows.textContent = formatNumber(metrics.premiumRows);
-  els.weightRows.textContent = formatNumber(metrics.targetWeightRows);
-  els.positionCount.textContent = formatNumber(metrics.positionCount);
-  els.latestExposure.textContent = formatPercent(metrics.latestExposure);
-  els.chartCaption.textContent = result.latestDate ? `截至 ${result.latestDate} 的每日目标仓位` : "本次任务无可展示曲线";
+  setOutputDirectory(job, true, result.outputDir || job.output_dir || "");
+  const reportReady = hasFile(result, "akquant_ha_report.html");
+  els.reportState.textContent = reportReady ? "已生成" : "未生成";
+  els.reportHint.textContent = reportReady ? "点击打开完整回测报告" : "AKQuant HTML";
+  els.reportCard.disabled = !reportReady;
+  els.reportCard.classList.toggle("ready", reportReady);
+  els.reportCard.setAttribute("aria-label", reportReady ? "打开完整回测报告" : "AKQuant 报告未生成");
+  els.reportCard.onclick = reportReady ? () => window.open(`/api/files/${job.id}/akquant_ha_report.html`, "_blank") : null;
+  const reportMetrics = result.reportMetrics || {};
+  els.totalReturn.textContent = reportMetrics.totalReturn || "--";
+  els.annualizedReturn.textContent = reportMetrics.annualizedReturn || "--";
+  els.maxDrawdown.textContent = reportMetrics.maxDrawdown || "--";
+  els.sharpeRatio.textContent = reportMetrics.sharpe || "--";
+  els.reportChartCaption.textContent = "";
+  els.exposureChartCaption.textContent = result.latestDate ? `截至 ${result.latestDate} 的每日目标仓位` : "本次任务无可展示仓位曲线";
   renderWeights(result.weights || []);
-  renderFiles(job.id, result.files || []);
-  drawChart((result.exposureSeries || []).map((point) => point.value));
+  drawLineChart(els.reportCanvas, result.equitySeries || [], { emptyText: "执行完成后显示 AKQuant 权益曲线", color: "#11685f", xLabel: "日期", yLabel: "权益" });
+  drawLineChart(els.exposureCanvas, result.exposureSeries || [], { emptyText: "执行完成后显示每日目标仓位", color: "#3776ab", minValue: 0, maxValue: 1, xLabel: "日期", yLabel: "仓位" });
 }
 
 function renderWeights(rows) {
@@ -257,27 +276,41 @@ function renderWeights(rows) {
     .join("");
 }
 
-function renderFiles(jobId, files) {
-  const byName = new Map(files.map((file) => [file.name, file.exists]));
-  els.fileButtons.forEach((button) => {
-    const filename = button.textContent.trim();
-    const exists = byName.get(filename);
-    button.disabled = !exists;
-    button.classList.toggle("ready", Boolean(exists));
-    button.onclick = exists ? () => window.open(`/api/files/${jobId}/${filename}`, "_blank") : null;
-  });
-}
 
 function hasFile(result, filename) {
   return Boolean((result.files || []).find((file) => file.name === filename && file.exists));
 }
 
-function drawChart(series) {
-  const canvas = els.canvas;
+function drawLineChart(canvas, series, options = {}) {
   const context = canvas.getContext("2d");
   const width = canvas.width;
   const height = canvas.height;
-  const pad = 28;
+  const pad = { top: 24, right: 26, bottom: 46, left: 72 };
+  const plotWidth = width - pad.left - pad.right;
+  const plotHeight = height - pad.top - pad.bottom;
+  const points = series
+    .map((point) => (typeof point === "number" ? { value: point } : point))
+    .filter((point) => point && point.value !== null && point.value !== undefined && !Number.isNaN(Number(point.value)));
+  const values = points.map((point) => Number(point.value));
+  const hasData = values.length > 0;
+  let min = hasData ? Math.min(...values) : 0;
+  let max = hasData ? Math.max(...values) : 1;
+
+  if (options.minValue !== undefined) min = Number(options.minValue);
+  else if (options.minBase !== undefined) min = Math.min(Number(options.minBase), min);
+  if (options.maxValue !== undefined) max = Number(options.maxValue);
+
+  if (min === max) {
+    min -= Math.abs(min || 1) * 0.02;
+    max += Math.abs(max || 1) * 0.02;
+  } else {
+    const padding = (max - min) * 0.06;
+    min -= padding;
+    max += padding;
+  }
+
+  const toX = (index) => pad.left + (plotWidth * index) / Math.max(1, points.length - 1);
+  const toY = (value) => pad.top + plotHeight - (plotHeight * (value - min)) / (max - min || 1);
 
   context.clearRect(0, 0, width, height);
   context.fillStyle = "#f8fafc";
@@ -285,44 +318,85 @@ function drawChart(series) {
   context.strokeStyle = "#d9e0e8";
   context.lineWidth = 1;
 
+  context.font = "12px Microsoft YaHei, Arial";
+  context.fillStyle = "#667085";
+  context.textAlign = "right";
+  context.textBaseline = "middle";
   for (let i = 0; i < 5; i += 1) {
-    const y = pad + ((height - pad * 2) / 4) * i;
+    const y = pad.top + (plotHeight / 4) * i;
+    const tickValue = max - ((max - min) / 4) * i;
     context.beginPath();
-    context.moveTo(pad, y);
-    context.lineTo(width - pad, y);
+    context.moveTo(pad.left, y);
+    context.lineTo(width - pad.right, y);
     context.stroke();
+    context.fillText(formatAxisValue(tickValue, options), pad.left - 10, y);
   }
 
-  if (!series.length) {
+  context.strokeStyle = "#aeb8c4";
+  context.beginPath();
+  context.moveTo(pad.left, pad.top);
+  context.lineTo(pad.left, height - pad.bottom);
+  context.lineTo(width - pad.right, height - pad.bottom);
+  context.stroke();
+
+  context.fillStyle = "#667085";
+  context.textAlign = "center";
+  context.textBaseline = "top";
+  context.fillText(options.xLabel || "日期", pad.left + plotWidth / 2, height - 18);
+  context.save();
+  context.translate(18, pad.top + plotHeight / 2);
+  context.rotate(-Math.PI / 2);
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(options.yLabel || "数值", 0, 0);
+  context.restore();
+
+  if (points.length) {
+    context.textAlign = "left";
+    context.textBaseline = "top";
+    context.fillText(formatAxisDate(points[0].date), pad.left, height - pad.bottom + 8);
+    context.textAlign = "right";
+    context.fillText(formatAxisDate(points.at(-1).date), width - pad.right, height - pad.bottom + 8);
+  }
+
+  if (!hasData) {
     context.fillStyle = "#667085";
     context.font = "16px Microsoft YaHei, Arial";
     context.textAlign = "center";
-    context.fillText("执行完成后显示每日目标仓位", width / 2, height / 2);
+    context.textBaseline = "middle";
+    context.fillText(options.emptyText || "执行完成后显示曲线", pad.left + plotWidth / 2, pad.top + plotHeight / 2);
     return;
   }
 
-  const min = Math.min(0, ...series) * 0.98;
-  const max = Math.max(1, ...series) * 1.02;
-  const toX = (index) => pad + ((width - pad * 2) * index) / Math.max(1, series.length - 1);
-  const toY = (value) => height - pad - ((height - pad * 2) * (value - min)) / (max - min || 1);
-
   context.beginPath();
-  series.forEach((value, index) => {
+  values.forEach((value, index) => {
     const x = toX(index);
     const y = toY(value);
     if (index === 0) context.moveTo(x, y);
     else context.lineTo(x, y);
   });
-  context.strokeStyle = "#11685f";
+  context.strokeStyle = options.color || "#11685f";
   context.lineWidth = 4;
   context.stroke();
 
-  const lastX = toX(series.length - 1);
-  const lastY = toY(series.at(-1));
-  context.fillStyle = "#11685f";
+  const lastX = toX(values.length - 1);
+  const lastY = toY(values.at(-1));
+  context.fillStyle = options.color || "#11685f";
   context.beginPath();
   context.arc(lastX, lastY, 6, 0, Math.PI * 2);
   context.fill();
+}
+
+function formatAxisValue(value, options = {}) {
+  if (options.yLabel === "仓位") return `${(Number(value) * 100).toFixed(0)}%`;
+  const abs = Math.abs(Number(value));
+  if (abs >= 1000000) return `${(Number(value) / 1000000).toFixed(2)}M`;
+  if (abs >= 1000) return `${(Number(value) / 1000).toFixed(0)}K`;
+  return Number(value).toFixed(2);
+}
+
+function formatAxisDate(value) {
+  return value ? String(value).slice(0, 10) : "";
 }
 
 function emptyTableRow(text, columns) {
@@ -363,7 +437,7 @@ async function loadStrategies() {
     const nextStrategies = {};
     payload.strategies.forEach((item) => {
       nextStrategies[item.id] = {
-        title: item.name,
+        title: cleanStrategyTitle(item.name),
         command: item.command || "run",
         description: item.description || "",
       };
@@ -378,6 +452,8 @@ async function loadStrategies() {
     els.progressCaption.textContent = error.message;
   }
   syncForm();
+  syncHistoryStrategyOptions();
+  renderHistory();
 }
 
 document.querySelectorAll(".tabs button").forEach((button) => {
@@ -394,9 +470,7 @@ document.querySelectorAll(".tabs button").forEach((button) => {
   els.startDate,
   els.endDate,
   els.initialCash,
-  els.grossExposure,
   els.refreshData,
-  els.integerPercent,
 ].forEach((control) => control.addEventListener("input", syncForm));
 
 els.copyCommand.addEventListener("click", async () => {
@@ -409,5 +483,315 @@ els.copyCommand.addEventListener("click", async () => {
 
 els.runButton.addEventListener("click", startRun);
 
+
+let historyRuns = [];
+
+
+let statusTimer = null;
+
+const statusEls = {
+  generatedAt: document.querySelector("#statusGeneratedAt"),
+  activeJobs: document.querySelector("#statusActiveJobs"),
+  latestRun: document.querySelector("#statusLatestRun"),
+  latestRunState: document.querySelector("#statusLatestRunState"),
+  reportReady: document.querySelector("#statusReportReady"),
+  taskBody: document.querySelector("#statusTaskBody"),
+};
+
+function startStatusPolling() {
+  stopStatusPolling();
+  loadStatus();
+  statusTimer = setInterval(loadStatus, 5000);
+}
+
+function stopStatusPolling() {
+  if (!statusTimer) return;
+  clearInterval(statusTimer);
+  statusTimer = null;
+}
+
+async function loadStatus() {
+  if (!statusEls.taskBody) return;
+  try {
+    const response = await fetch("/api/status");
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "读取运行总览失败。");
+    renderStatus(payload);
+  } catch (error) {
+    statusEls.taskBody.innerHTML = `<tr class="empty-row"><td colspan="5">${escapeHtml(error.message)}</td></tr>`;
+  }
+}
+
+function renderStatus(payload) {
+  const summary = payload.summary || {};
+  const recentTasks = payload.recentTasks || [];
+  statusEls.generatedAt.textContent = payload.generatedAt || "--";
+  statusEls.activeJobs.textContent = summary.activeJobs ?? 0;
+  statusEls.latestRun.textContent = summary.latestRunAt || "--";
+  statusEls.latestRunState.textContent = statusText(summary.latestRunStatus);
+  statusEls.reportReady.textContent = summary.reportReadyRuns ?? 0;
+
+  statusEls.taskBody.innerHTML = recentTasks.length
+    ? recentTasks.map((task) => statusTaskRowHtml(task)).join("")
+    : '<tr class="empty-row"><td colspan="5">暂无运行记录。</td></tr>';
+
+  statusEls.taskBody.querySelectorAll(".status-report:not(:disabled)").forEach((button) => {
+    button.addEventListener("click", () => {
+      window.open(`/api/files/${encodeURIComponent(button.dataset.fileId)}/akquant_ha_report.html`, "_blank");
+    });
+  });
+  statusEls.taskBody.querySelectorAll(".status-output:not(:disabled)").forEach((button) => {
+    button.addEventListener("click", () => openStatusOutputDirectory(button.dataset.fileId, button));
+  });
+
+}
+
+function statusTaskRowHtml(task) {
+  const fileId = task.fileId || task.id || "";
+  const reportDisabled = task.reportReady ? "" : "disabled";
+  const outputDisabled = task.outputDir ? "" : "disabled";
+  const progress = task.progress === null || task.progress === undefined ? "" : ` · ${task.progress}%`;
+  return `
+    <tr>
+      <td><span class="status-chip ${statusClass(task.status)}">${statusText(task.status || task.statusText)}</span></td>
+      <td>${escapeHtml(task.createdAt || "--")}</td>
+      <td>
+        <strong>${escapeHtml(statusStrategyName(task))}</strong>
+        <small>${escapeHtml(task.startDate || "--")} 至 ${escapeHtml(task.endDate || "--")}</small>
+      </td>
+      <td>
+        <div class="status-actions">
+          <button class="report-link status-report" type="button" data-file-id="${escapeHtml(fileId)}" ${reportDisabled}>报告</button>
+          <button class="report-link status-output" type="button" data-file-id="${escapeHtml(fileId)}" ${outputDisabled}>目录</button>
+        </div>
+      </td>
+      <td><span class="status-log">${escapeHtml(task.message || task.step || "--")}${escapeHtml(progress)}</span></td>
+    </tr>
+  `;
+}
+
+async function openStatusOutputDirectory(fileId, button) {
+  const originalText = button.textContent;
+  try {
+    button.textContent = "打开中";
+    const response = await fetch(`/api/history/${encodeURIComponent(fileId)}/open-output-dir`, { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "打开输出目录失败。");
+    button.textContent = "已请求";
+    setTimeout(() => {
+      button.textContent = originalText;
+    }, 1200);
+  } catch (error) {
+    button.textContent = "失败";
+    statusEls.generatedAt.textContent = error.message;
+    setTimeout(() => {
+      button.textContent = originalText;
+    }, 1600);
+  }
+}
+
+function statusStrategyName(item) {
+  return strategies[item.strategy]?.title || item.strategyName || item.strategy || "未知策略";
+}
+
+function statusText(value) {
+  const text = String(value || "").toLowerCase();
+  const labels = {
+    queued: "排队中",
+    running: "执行中",
+    completed: "已完成",
+    failed: "失败",
+    missing: "报告缺失",
+    "missing report": "报告缺失",
+    "no records": "暂无记录",
+    "no historical runs": "暂无历史运行",
+  };
+  return labels[text] || value || "--";
+}
+
+function statusClass(value) {
+  const text = String(value || "").toLowerCase();
+  if (["running", "queued"].includes(text)) return "running";
+  if (text === "completed") return "done";
+  if (["failed", "missing", "missing report"].includes(text)) return "failed";
+  return "idle";
+}
+
+const historyEls = {
+  navButtons: Array.from(document.querySelectorAll(".view-switch button")),
+  panels: Array.from(document.querySelectorAll(".view-panel")),
+  strategyFilter: document.querySelector("#historyStrategyFilter"),
+  cashFilter: document.querySelector("#historyCashFilter"),
+  reportFilter: document.querySelector("#historyReportFilter"),
+  count: document.querySelector("#historyCount"),
+  tableBody: document.querySelector("#historyTableBody"),
+  detailStatus: document.querySelector("#historyDetailStatus"),
+  detailTitle: document.querySelector("#historyDetailTitle"),
+  detailRunId: document.querySelector("#detailRunId"),
+  detailCreatedAt: document.querySelector("#detailCreatedAt"),
+  detailPeriod: document.querySelector("#detailPeriod"),
+  detailCash: document.querySelector("#detailCash"),
+  detailFlags: document.querySelector("#detailFlags"),
+  detailOutputDir: document.querySelector("#detailOutputDir"),
+  openReport: document.querySelector("#openHistoryReport"),
+  reuseParams: document.querySelector("#reuseHistoryParams"),
+};
+
+let selectedHistoryRunId = historyRuns[0]?.id || null;
+
+function switchView(view) {
+  historyEls.navButtons.forEach((button) => button.classList.toggle("active", button.dataset.viewTarget === view));
+  historyEls.panels.forEach((panel) => panel.classList.toggle("hidden", panel.dataset.view !== view));
+  if (view === "history") loadHistory();
+  if (view === "status") startStatusPolling();
+  else stopStatusPolling();
+}
+
+function syncHistoryStrategyOptions() {
+  if (!historyEls.strategyFilter) return;
+  const selected = historyEls.strategyFilter.value || "all";
+  const strategyOptions = new Map();
+  Object.entries(strategies).forEach(([id, item]) => strategyOptions.set(id, item.title));
+  historyRuns.forEach((run) => strategyOptions.set(run.strategy, historyStrategyName(run)));
+  historyEls.strategyFilter.innerHTML = [
+    '<option value="all">\u5168\u90e8\u7b56\u7565</option>',
+    ...Array.from(strategyOptions.entries()).map(([id, title]) => `<option value="${escapeHtml(id)}">${escapeHtml(title)}</option>`),
+  ].join("");
+  historyEls.strategyFilter.value = strategyOptions.has(selected) ? selected : "all";
+}
+
+async function loadHistory() {
+  try {
+    const response = await fetch("/api/history");
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "\u8bfb\u53d6\u5386\u53f2\u56de\u6d4b\u5931\u8d25\u3002");
+    historyRuns = payload.runs || [];
+    if (!historyRuns.find((run) => run.id === selectedHistoryRunId)) selectedHistoryRunId = historyRuns[0]?.id || null;
+  } catch (error) {
+    historyRuns = [];
+    selectedHistoryRunId = null;
+    historyEls.detailStatus.textContent = "\u8bfb\u53d6\u5931\u8d25";
+    historyEls.detailTitle.textContent = error.message;
+  }
+  syncHistoryStrategyOptions();
+  renderHistory();
+}
+
+function getFilteredHistoryRuns() {
+  const strategy = historyEls.strategyFilter.value;
+  const cash = historyEls.cashFilter.value;
+  const report = historyEls.reportFilter.value;
+
+  return historyRuns.filter((run) => {
+    if (strategy !== "all" && run.strategy !== strategy) return false;
+    const initialCash = Number(run.initialCash);
+    if (cash !== "all" && Number.isNaN(initialCash)) return false;
+    if (cash === "lt100" && initialCash >= 1000000) return false;
+    if (cash === "100to500" && (initialCash < 1000000 || initialCash > 5000000)) return false;
+    if (cash === "gte500" && initialCash < 5000000) return false;
+    if (report === "ready" && !run.reportReady) return false;
+    if (report === "missing" && run.reportReady) return false;
+    return true;
+  });
+}
+
+function renderHistory() {
+  if (!historyEls.tableBody) return;
+  const rows = getFilteredHistoryRuns();
+  historyEls.count.textContent = rows.length;
+  if (!rows.find((run) => run.id === selectedHistoryRunId)) selectedHistoryRunId = rows[0]?.id || null;
+
+  historyEls.tableBody.innerHTML = rows.length
+    ? rows.map((run) => historyRowHtml(run)).join("")
+    : '<tr class="empty-row"><td colspan="5">\u6ca1\u6709\u7b26\u5408\u5f53\u524d\u7b5b\u9009\u6761\u4ef6\u7684\u5386\u53f2\u6267\u884c\u8bb0\u5f55\u3002</td></tr>';
+
+  historyEls.tableBody.querySelectorAll("tr[data-run-id]").forEach((row) => {
+    row.addEventListener("click", () => {
+      selectedHistoryRunId = row.dataset.runId;
+      renderHistory();
+    });
+  });
+  historyEls.tableBody.querySelectorAll(".report-link:not(:disabled)").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const run = historyRuns.find((item) => item.id === button.closest("tr").dataset.runId);
+      if (run) window.open(historyReportUrl(run), "_blank");
+    });
+  });
+
+  renderHistoryDetail(rows.find((run) => run.id === selectedHistoryRunId) || null);
+}
+
+function historyRowHtml(run) {
+  const selected = run.id === selectedHistoryRunId ? " selected" : "";
+  const reportLabel = run.reportReady ? "\u67e5\u770b\u62a5\u544a" : "\u7f3a\u5931";
+  return `
+    <tr class="${selected}" data-run-id="${escapeHtml(run.id)}">
+      <td><button class="report-link" type="button" ${run.reportReady ? "" : "disabled"}>${reportLabel}</button></td>
+      <td>${escapeHtml(run.createdAt)}</td>
+      <td>${escapeHtml(historyStrategyName(run))}</td>
+      <td>${escapeHtml(run.startDate)} \u81f3 ${escapeHtml(run.endDate)}</td>
+      <td>${formatMoney(run.initialCash)}</td>
+    </tr>
+  `;
+}
+
+function renderHistoryDetail(run) {
+  const hasRun = Boolean(run);
+  const canReuse = hasRun && Boolean(strategies[run.strategy]);
+  historyEls.detailStatus.textContent = hasRun ? (run.reportReady ? "\u62a5\u544a\u53ef\u7528" : "\u62a5\u544a\u7f3a\u5931") : "\u6682\u65e0\u8bb0\u5f55";
+  historyEls.detailTitle.textContent = hasRun ? historyStrategyName(run) : "\u9009\u62e9\u4e00\u6761\u6267\u884c\u8bb0\u5f55";
+  historyEls.detailRunId.textContent = hasRun ? run.id : "--";
+  historyEls.detailCreatedAt.textContent = hasRun ? run.createdAt : "--";
+  historyEls.detailPeriod.textContent = hasRun ? `${run.startDate} \u81f3 ${run.endDate}` : "--";
+  historyEls.detailCash.textContent = hasRun ? formatMoney(run.initialCash) : "--";
+  historyEls.detailFlags.textContent = hasRun ? formatFlags(run) : "--";
+  historyEls.detailOutputDir.textContent = hasRun ? run.outputDir : "--";
+  historyEls.openReport.disabled = !hasRun || !run.reportReady;
+  historyEls.reuseParams.disabled = !canReuse;
+  historyEls.openReport.onclick = hasRun && run.reportReady ? () => window.open(historyReportUrl(run), "_blank") : null;
+  historyEls.reuseParams.onclick = canReuse ? () => reuseHistoryRun(run) : null;
+}
+
+function reuseHistoryRun(run) {
+  if (!strategies[run.strategy]) return;
+  els.strategySelect.value = run.strategy;
+  els.startDate.value = run.startDate;
+  els.endDate.value = run.endDate;
+  els.initialCash.value = run.initialCash;
+  els.refreshData.checked = run.refreshData;
+  syncForm();
+  switchView("run");
+}
+
+function historyStrategyName(run) {
+  return strategies[run.strategy]?.title || run.strategyName || "\u672a\u77e5\u7b56\u7565";
+}
+
+function historyReportUrl(run) {
+  return `/api/files/${encodeURIComponent(run.id)}/akquant_ha_report.html`;
+}
+
+function formatMoney(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
+  return `${Number(value).toLocaleString("zh-CN")} \u5143`;
+}
+
+function formatFlags(run) {
+  return run.refreshData ? "\u5f3a\u5236\u5237\u65b0\u884c\u60c5" : "\u590d\u7528\u884c\u60c5\u7f13\u5b58";
+}
+
+historyEls.navButtons.forEach((button) => {
+  button.addEventListener("click", () => switchView(button.dataset.viewTarget));
+});
+
+[
+  historyEls.strategyFilter,
+  historyEls.cashFilter,
+  historyEls.reportFilter,
+].forEach((control) => control.addEventListener("input", renderHistory));
+
+syncHistoryStrategyOptions();
+renderHistory();
 resetResult();
-loadStrategies();
+loadStrategies().then(loadHistory);
