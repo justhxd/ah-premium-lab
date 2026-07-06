@@ -21,7 +21,11 @@ def build_target_weights(
     source = premium_df.copy()
     frames: List[pd.DataFrame] = []
     for date, group in source.groupby("date", sort=True):
-        ranked = group.dropna(subset=["premium_rate"]).sort_values("premium_rate", ascending=False).copy()
+        ranked = group.dropna(subset=["premium_rate"]).sort_values(
+            "premium_rate",
+            ascending=False,
+            kind="mergesort",
+        ).copy()
         if ranked.empty:
             continue
 
