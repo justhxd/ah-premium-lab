@@ -6,10 +6,13 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+$OutputEncoding = [Console]::OutputEncoding
 $Root = Split-Path -Parent $PSScriptRoot
 if (-not $Python) {
     $Python = Join-Path $Root ".venv\Scripts\python.exe"
 }
+$PythonUtf8Args = @("-X", "utf8")
 
 function Invoke-CheckedCommand {
     param(
@@ -51,7 +54,7 @@ function Invoke-ApiSmokeTest {
 
     $psi = [System.Diagnostics.ProcessStartInfo]::new()
     $psi.FileName = $Python
-    $psi.Arguments = "-m ha_backtest.web --host 127.0.0.1 --port $SmokePort"
+    $psi.Arguments = "-X utf8 -m ha_backtest.web --host 127.0.0.1 --port $SmokePort"
     $psi.WorkingDirectory = $Root
     $psi.UseShellExecute = $false
     $psi.CreateNoWindow = $true
@@ -87,12 +90,12 @@ try {
     Invoke-CheckedCommand `
         -Name "Python compile" `
         -FilePath $Python `
-        -Arguments @("-m", "compileall", "-q", "src", "tests", "diagnose_backtest_run.py")
+        -Arguments ($PythonUtf8Args + @("-m", "compileall", "-q", "src", "tests", "diagnose_backtest_run.py"))
 
     Invoke-CheckedCommand `
         -Name "pytest" `
         -FilePath $Python `
-        -Arguments @("-m", "pytest")
+        -Arguments ($PythonUtf8Args + @("-m", "pytest"))
 
     $node = Get-Command node -ErrorAction SilentlyContinue
     if (-not $node) {

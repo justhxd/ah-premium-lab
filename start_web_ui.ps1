@@ -1,9 +1,11 @@
-﻿param(
+param(
     [int]$Port = 8765,
     [string]$HostName = "0.0.0.0"
 )
 
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+$OutputEncoding = [Console]::OutputEncoding
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Python = Join-Path $Root ".venv\Scripts\python.exe"
 $DataDir = Join-Path $Root "data"
@@ -36,20 +38,19 @@ if ($listenerPid) {
 
 $psi = [System.Diagnostics.ProcessStartInfo]::new()
 $psi.FileName = $Python
-$psi.Arguments = "-m ha_backtest.web --host $HostName --port $Port"
+$psi.Arguments = "-X utf8 -m ha_backtest.web --host $HostName --port $Port"
 $psi.WorkingDirectory = $Root
 $psi.UseShellExecute = $true
 $psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
 
 $process = [System.Diagnostics.Process]::Start($psi)
-$process.Id | Set-Content -Encoding ascii $PidFile
+$process.Id | Set-Content -Encoding utf8 $PidFile
 
 Start-Sleep -Seconds 2
 $listenerPid = Get-ListenerPid -Port $Port
 if (-not $listenerPid) {
-    throw "Web UI did not start on $Url. Try running: .\.venv\Scripts\python.exe -m ha_backtest.web"
+    throw "Web UI did not start on $Url. Try running: .\.venv\Scripts\python.exe -X utf8 -m ha_backtest.web"
 }
 
 Write-Host "Web UI started: $Url (PID $listenerPid)."
 Start-Process $Url
-

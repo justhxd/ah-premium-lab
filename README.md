@@ -1,4 +1,4 @@
-﻿# H/A 溢价回测框架
+# H/A 溢价回测框架
 
 这个项目把 `C:\Users\huxiaodong\Desktop\claude\HA` 里的策略逻辑改造成可回测版本：
 
@@ -15,10 +15,12 @@
 
 本项目强制使用 Python 3.11 x64。不要使用系统里旧的 Python 3.9.2rc1；该版本导入 `akquant` 会因为 `python3.dll` 缺少 ABI 符号而 DLL 加载失败。
 
+涉及 `py` 启动器的命令统一写成 `py -3.11 -X utf8 ...`；项目脚本默认使用 `.venv\Scripts\python.exe -X utf8 ...`，避免 Windows 中文路径、PowerShell 输出编码和默认 `python` 指向不同版本导致的乱码或 ABI 问题。PowerShell 写文本文件时统一显式使用 `-Encoding utf8`。
+
 推荐始终使用项目虚拟环境里的解释器：
 
 ```powershell
-.\.venv\Scripts\python.exe --version
+.\.venv\Scripts\python.exe -X utf8 --version
 ```
 
 应显示：
@@ -30,9 +32,9 @@ Python 3.11.9
 如需重新创建环境：
 
 ```powershell
-py -3.11 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -U pip setuptools wheel
-.\.venv\Scripts\python.exe -m pip install -e . pytest
+py -3.11 -X utf8 -m venv .venv
+.\.venv\Scripts\python.exe -X utf8 -m pip install -U pip setuptools wheel
+.\.venv\Scripts\python.exe -X utf8 -m pip install -e . pytest
 ```
 
 ## 安装
@@ -40,7 +42,7 @@ py -3.11 -m venv .venv
 当前项目已经创建好 `.venv`。后续安装/更新依赖时使用：
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -e . pytest
+.\.venv\Scripts\python.exe -X utf8 -m pip install -e . pytest
 ```
 
 ## 开发启动
@@ -60,7 +62,7 @@ py -3.11 -m venv .venv
 也可以直接使用 Python 入口指定监听地址：
 
 ```powershell
-.\.venv\Scripts\python.exe -m ha_backtest.web --host 127.0.0.1 --port 8765
+.\.venv\Scripts\python.exe -X utf8 -m ha_backtest.web --host 127.0.0.1 --port 8765
 ```
 
 ## 验证命令
@@ -73,8 +75,8 @@ py -3.11 -m venv .venv
 
 该脚本会依次执行：
 
-- Python 编译检查：`.\.venv\Scripts\python.exe -m compileall -q src tests diagnose_backtest_run.py`
-- 单元测试：`.\.venv\Scripts\python.exe -m pytest`
+- Python 编译检查：`.\.venv\Scripts\python.exe -X utf8 -m compileall -q src tests diagnose_backtest_run.py`
+- 单元测试：`.\.venv\Scripts\python.exe -X utf8 -m pytest`
 - 前端语法检查：`node --check ui\*.js`
 - 关键 API smoke test：临时启动 `ha_backtest.web`，检查 `/api/strategies` 和 `/api/status`
 
@@ -110,7 +112,7 @@ py -3.11 -m venv .venv
 ## 构建历史溢价和每日权重
 
 ```powershell
-.\.venv\Scripts\python.exe -m ha_backtest.cli build-premium --start 20250101 --end 20260702
+.\.venv\Scripts\python.exe -X utf8 -m ha_backtest.cli build-premium --start 20250101 --end 20260702
 ```
 
 输出：
@@ -121,13 +123,13 @@ py -3.11 -m venv .venv
 也可以显式指定完整配对文件：
 
 ```powershell
-.\.venv\Scripts\python.exe -m ha_backtest.cli build-premium --pairs config/ah_pairs_full.csv --start 20250101 --end 20260702
+.\.venv\Scripts\python.exe -X utf8 -m ha_backtest.cli build-premium --pairs config/ah_pairs_full.csv --start 20250101 --end 20260702
 ```
 
 ## 运行 AKQuant 回测
 
 ```powershell
-.\.venv\Scripts\python.exe -m ha_backtest.cli run --start 20250101 --end 20260702 --initial-cash 1000000
+.\.venv\Scripts\python.exe -X utf8 -m ha_backtest.cli run --start 20250101 --end 20260702 --initial-cash 1000000
 ```
 
 每次运行都会在 `--output-dir` 指定的根目录下创建一个独立子目录。默认根目录是 `data`，子目录形如：
@@ -147,7 +149,7 @@ data/run_20250101_20260702_20260702_170512
 默认交易 A 股历史行情，symbol 形如 `SZ300750` / `SH600036`；H 股价格只用于计算 H/A 溢价信号。如需使用整数百分比权重分配，可加：
 
 ```powershell
-.\.venv\Scripts\python.exe -m ha_backtest.cli run --start 20250101 --end 20260702 --integer-percent
+.\.venv\Scripts\python.exe -X utf8 -m ha_backtest.cli run --start 20250101 --end 20260702 --integer-percent
 ```
 
 ## 策略公式
@@ -191,6 +193,3 @@ A 股目标权重 = 偏移量 / 偏移量总和 * 总仓位上限
 ## 注意
 
 `config/ah_pairs_full.csv` 来自当前可得 AH 配对缓存。如果要做非常长周期或严格研究，仍需要关注历史上市/退市带来的幸存者偏差。
-
-
-
