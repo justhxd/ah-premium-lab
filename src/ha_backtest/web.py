@@ -21,7 +21,7 @@ from uuid import uuid4
 from .cli import DEFAULT_CACHE, DEFAULT_OUTPUT, DEFAULT_PAIRS, _make_run_output_dir
 from .data import load_ah_pairs
 from .core.context import StrategyRunRequest
-from .core.output import ALLOWED_RESULT_FILES, summarize_output
+from .core.output import ALLOWED_RESULT_FILES, summarize_akquant_report, summarize_output
 from .core.registry import get_strategy, list_strategy_metadata
 
 
@@ -418,6 +418,7 @@ def _history_record(output_dir: Path) -> Optional[dict[str, Any]]:
     record["id"] = output_dir.name
     record["outputDir"] = str(output_dir)
     record["reportReady"] = report_ready
+    record["reportMetrics"] = summarize_akquant_report(output_dir / "akquant_ha_report.html")
     record["files"] = [{"name": filename, "exists": (output_dir / filename).exists()} for filename in sorted(ALLOWED_RESULT_FILES)]
     if record.get("status") in {"queued", "running"}:
         record["status"] = "completed" if report_ready else "missing"

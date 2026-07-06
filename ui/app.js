@@ -703,7 +703,7 @@ function renderHistory() {
 
   historyEls.tableBody.innerHTML = rows.length
     ? rows.map((run) => historyRowHtml(run)).join("")
-    : '<tr class="empty-row"><td colspan="5">\u6ca1\u6709\u7b26\u5408\u5f53\u524d\u7b5b\u9009\u6761\u4ef6\u7684\u5386\u53f2\u6267\u884c\u8bb0\u5f55\u3002</td></tr>';
+    : '<tr class="empty-row"><td colspan="6">\u6ca1\u6709\u7b26\u5408\u5f53\u524d\u7b5b\u9009\u6761\u4ef6\u7684\u5386\u53f2\u6267\u884c\u8bb0\u5f55\u3002</td></tr>';
 
   historyEls.tableBody.querySelectorAll("tr[data-run-id]").forEach((row) => {
     row.addEventListener("click", () => {
@@ -723,15 +723,20 @@ function renderHistory() {
 }
 
 function historyRowHtml(run) {
-  const selected = run.id === selectedHistoryRunId ? " selected" : "";
-  const reportLabel = run.reportReady ? "\u67e5\u770b\u62a5\u544a" : "\u7f3a\u5931";
+  const selected = run.id === selectedHistoryRunId ? ' selected' : '';
+  const reportLabel = run.reportReady ? '\u67e5\u770b\u62a5\u544a' : '\u7f3a\u5931';
+  const metrics = run.reportMetrics || {};
   return `
-    <tr class="${selected}" data-run-id="${escapeHtml(run.id)}">
-      <td><button class="report-link" type="button" ${run.reportReady ? "" : "disabled"}>${reportLabel}</button></td>
-      <td>${escapeHtml(run.createdAt)}</td>
-      <td>${escapeHtml(historyStrategyName(run))}</td>
-      <td>${escapeHtml(run.startDate)} \u81f3 ${escapeHtml(run.endDate)}</td>
-      <td>${formatMoney(run.initialCash)}</td>
+    <tr class='${selected}' data-run-id='${escapeHtml(run.id)}'>
+      <td><button class='report-link' type='button' ${run.reportReady ? '' : 'disabled'}>${reportLabel}</button></td>
+      <td class='history-run-cell'>
+        <strong>${escapeHtml(historyStrategyName(run))}</strong>
+        <small>${escapeHtml(run.startDate)} \u81f3 ${escapeHtml(run.endDate)}</small>
+      </td>
+      <td class='history-metric'>${escapeHtml(metrics.totalReturn || '--')}</td>
+      <td class='history-metric'>${escapeHtml(metrics.annualizedReturn || '--')}</td>
+      <td class='history-metric'>${escapeHtml(metrics.maxDrawdown || '--')}</td>
+      <td class='history-metric'>${escapeHtml(metrics.sharpe || '--')}</td>
     </tr>
   `;
 }

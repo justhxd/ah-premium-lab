@@ -634,9 +634,31 @@ tbody tr:last-child td {
 }
 
 .history-table {
-  min-width: 620px;
+  min-width: 840px;
   border: 0;
   border-radius: 0;
+}
+
+.history-table td:nth-child(2) {
+  min-width: 220px;
+  white-space: normal;
+}
+
+.history-run-cell strong,
+.history-run-cell small {
+  display: block;
+}
+
+.history-run-cell small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.history-metric {
+  color: #2f3a46;
+  font-weight: 800;
 }
 
 .history-table tbody tr {

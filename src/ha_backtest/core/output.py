@@ -107,6 +107,11 @@ def _summarize_akquant_report(report_path: Path) -> tuple[dict[str, str], list[d
     return metrics, _extract_equity_series(text)
 
 
+def summarize_akquant_report(report_path: Path) -> dict[str, str]:
+    metrics, _equity_series = _summarize_akquant_report(report_path)
+    return metrics
+
+
 def _extract_report_metric(text: str, label: str) -> Optional[str]:
     pattern = (
         r'<div class="metric-card">\s*'
