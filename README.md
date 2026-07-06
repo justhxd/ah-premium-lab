@@ -43,6 +43,70 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e . pytest
 ```
 
+## 开发启动
+
+启动本地 Web UI：
+
+```powershell
+.\start_web_ui.ps1
+```
+
+默认服务地址为 `http://127.0.0.1:8765/`。停止服务：
+
+```powershell
+.\stop_web_ui.ps1
+```
+
+也可以直接使用 Python 入口指定监听地址：
+
+```powershell
+.\.venv\Scripts\python.exe -m ha_backtest.web --host 127.0.0.1 --port 8765
+```
+
+## 验证命令
+
+统一验证入口：
+
+```powershell
+.\scripts\check.ps1
+```
+
+该脚本会依次执行：
+
+- Python 编译检查：`.\.venv\Scripts\python.exe -m compileall -q src tests diagnose_backtest_run.py`
+- 单元测试：`.\.venv\Scripts\python.exe -m pytest`
+- 前端语法检查：`node --check ui\*.js`
+- 关键 API smoke test：临时启动 `ha_backtest.web`，检查 `/api/strategies` 和 `/api/status`
+
+如只想跑静态和单元测试、跳过 API smoke test：
+
+```powershell
+.\scripts\check.ps1 -SkipSmoke
+```
+
+## 端到端检查
+
+完整本地端到端检查使用：
+
+```powershell
+.\scripts\check.ps1
+```
+
+脚本默认会在 `http://127.0.0.1:18765/` 临时启动后端做只读 API 检查，完成后自动停止。若端口被占用，可指定其他端口：
+
+```powershell
+.\scripts\check.ps1 -SmokePort 18766
+```
+
+需要人工检查界面时，先运行 `.\start_web_ui.ps1`，再打开 `http://127.0.0.1:8765/`。
+
+## 常见失败
+
+- `Cannot find Python interpreter`：先按“Python 版本要求”和“安装”章节创建 `.venv` 并安装依赖。
+- `Cannot find node`：安装 Node.js 后重跑验证。
+- `pytest` 导入 `akquant` 失败：确认正在使用 Python 3.11 x64，不要使用系统旧版 Python 3.9.2rc1。
+- API smoke test 超时：确认指定端口未被占用，或改用 `.\scripts\check.ps1 -SmokePort 其他端口`。
+
 ## 构建历史溢价和每日权重
 
 ```powershell
