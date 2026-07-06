@@ -618,27 +618,26 @@ function statusClass(value) {
 }
 
 const historyEls = {
-  navButtons: Array.from(document.querySelectorAll(".view-switch button")),
-  panels: Array.from(document.querySelectorAll(".view-panel")),
-  strategyFilter: document.querySelector("#historyStrategyFilter"),
-  startFilter: document.querySelector("#historyStartFilter"),
-  endFilter: document.querySelector("#historyEndFilter"),
-  totalReturnFilter: document.querySelector("#historyTotalReturnFilter"),
-  annualizedReturnFilter: document.querySelector("#historyAnnualizedReturnFilter"),
-  maxDrawdownFilter: document.querySelector("#historyMaxDrawdownFilter"),
-  sharpeFilter: document.querySelector("#historySharpeFilter"),
-  count: document.querySelector("#historyCount"),
-  tableBody: document.querySelector("#historyTableBody"),
-  detailStatus: document.querySelector("#historyDetailStatus"),
-  detailTitle: document.querySelector("#historyDetailTitle"),
-  detailRunId: document.querySelector("#detailRunId"),
-  detailCreatedAt: document.querySelector("#detailCreatedAt"),
-  detailPeriod: document.querySelector("#detailPeriod"),
-  detailCash: document.querySelector("#detailCash"),
-  detailFlags: document.querySelector("#detailFlags"),
-  detailOutputDir: document.querySelector("#detailOutputDir"),
-  openReport: document.querySelector("#openHistoryReport"),
-  reuseParams: document.querySelector("#reuseHistoryParams"),
+  navButtons: Array.from(document.querySelectorAll('.view-switch button')),
+  panels: Array.from(document.querySelectorAll('.view-panel')),
+  strategyFilter: document.querySelector('#historyStrategyFilter'),
+  durationMonthsFilter: document.querySelector('#historyDurationMonthsFilter'),
+  totalReturnFilter: document.querySelector('#historyTotalReturnFilter'),
+  annualizedReturnFilter: document.querySelector('#historyAnnualizedReturnFilter'),
+  maxDrawdownFilter: document.querySelector('#historyMaxDrawdownFilter'),
+  sharpeFilter: document.querySelector('#historySharpeFilter'),
+  count: document.querySelector('#historyCount'),
+  tableBody: document.querySelector('#historyTableBody'),
+  detailStatus: document.querySelector('#historyDetailStatus'),
+  detailTitle: document.querySelector('#historyDetailTitle'),
+  detailRunId: document.querySelector('#detailRunId'),
+  detailCreatedAt: document.querySelector('#detailCreatedAt'),
+  detailPeriod: document.querySelector('#detailPeriod'),
+  detailCash: document.querySelector('#detailCash'),
+  detailFlags: document.querySelector('#detailFlags'),
+  detailOutputDir: document.querySelector('#detailOutputDir'),
+  openReport: document.querySelector('#openHistoryReport'),
+  reuseParams: document.querySelector('#reuseHistoryParams'),
 };
 
 let selectedHistoryRunId = historyRuns[0]?.id || null;
@@ -683,8 +682,7 @@ async function loadHistory() {
 
 function getFilteredHistoryRuns() {
   const strategy = historyEls.strategyFilter.value;
-  const startDate = historyEls.startFilter.value;
-  const endDate = historyEls.endFilter.value;
+  const minDurationMonths = parseHistoryFilterNumber(historyEls.durationMonthsFilter.value);
   const minTotalReturn = parseHistoryFilterNumber(historyEls.totalReturnFilter.value);
   const minAnnualizedReturn = parseHistoryFilterNumber(historyEls.annualizedReturnFilter.value);
   const maxDrawdown = parseHistoryFilterNumber(historyEls.maxDrawdownFilter.value);
@@ -692,9 +690,8 @@ function getFilteredHistoryRuns() {
 
   return historyRuns.filter((run) => {
     if (!run.reportReady) return false;
-    if (strategy !== "all" && run.strategy !== strategy) return false;
-    if (startDate && normalizeHistoryDate(run.startDate) < startDate) return false;
-    if (endDate && normalizeHistoryDate(run.endDate) > endDate) return false;
+    if (strategy !== 'all' && run.strategy !== strategy) return false;
+    if (!passesDurationMonths(run, minDurationMonths)) return false;
 
     const metrics = run.reportMetrics || {};
     if (!passesMinimumMetric(metrics.totalReturn, minTotalReturn)) return false;
@@ -706,15 +703,15 @@ function getFilteredHistoryRuns() {
 }
 
 function parseHistoryFilterNumber(value) {
-  const text = String(value || "").trim();
+  const text = String(value || '').trim();
   if (!text) return null;
   const number = Number(text);
   return Number.isNaN(number) ? null : number;
 }
 
 function parseHistoryMetric(value) {
-  const text = String(value || "").replace(/,/g, "").replace(/%/g, "").trim();
-  if (!text || text === "--") return null;
+  const text = String(value || '').replace(/,/g, '').replace(/%/g, '').trim();
+  if (!text || text === '--') return null;
   const number = Number(text);
   return Number.isNaN(number) ? null : number;
 }
@@ -731,8 +728,21 @@ function passesMaximumMetric(value, maximum) {
   return metric !== null && Math.abs(metric) <= maximum;
 }
 
+function passesDurationMonths(run, minimumMonths) {
+  if (minimumMonths === null) return true;
+  const durationMonths = historyDurationMonths(run.startDate, run.endDate);
+  return durationMonths !== null && durationMonths >= minimumMonths;
+}
+
+function historyDurationMonths(startValue, endValue) {
+  const start = new Date(normalizeHistoryDate(startValue));
+  const end = new Date(normalizeHistoryDate(endValue));
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return null;
+  return ((end - start) / 86400000 + 1) / 30.4375;
+}
+
 function normalizeHistoryDate(value) {
-  return String(value || "").slice(0, 10);
+  return String(value || '').slice(0, 10);
 }
 
 function renderHistory() {
@@ -832,8 +842,7 @@ historyEls.navButtons.forEach((button) => {
 
 [
   historyEls.strategyFilter,
-  historyEls.startFilter,
-  historyEls.endFilter,
+  historyEls.durationMonthsFilter,
   historyEls.totalReturnFilter,
   historyEls.annualizedReturnFilter,
   historyEls.maxDrawdownFilter,
