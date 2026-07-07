@@ -1,15 +1,11 @@
 ﻿from pathlib import Path
 
 import pandas as pd
-import pytest
 
 from ha_backtest.cli import _make_run_output_dir
-from ha_backtest.data import AHPair, AkshareHistoryClient, build_target_weights, load_ah_pairs, normalize_a_share_trade_symbol, normalize_fx, _merge_pair_history
-from ha_backtest.core.context import StrategyRunRequest
-from ha_backtest.core.registry import list_strategy_metadata, run_strategy_preflight
+from ha_backtest.data import AHPair, AkshareHistoryClient, build_target_weights, load_ah_pairs, normalize_fx, _merge_pair_history
+from ha_backtest.core.registry import list_strategy_metadata
 from ha_backtest.runner import write_strategy_description
-from ha_backtest.strategies.sector_flow import features as sector_flow_features
-from ha_backtest.strategies.sector_flow.features import SectorFlowDataSourceError, build_sector_flow_target_weights, build_stock_leader_scores, normalize_sector_flow_history
 
 
 def test_load_default_pairs_keeps_h_code_padding_and_a_trade_symbol():
@@ -73,7 +69,7 @@ def test_build_target_weights_scales_offsets_when_total_exceeds_cap():
 def test_strategy_registry_exposes_annual_line_variant_for_web_ui():
     ids = [metadata.id for metadata in list_strategy_metadata()]
 
-    assert ids == ["ha-premium", "ha-premium-annual-line", "sector-flow-relative-strength"]
+    assert ids == ["ha-premium", "ha-premium-annual-line"]
 
 def test_build_target_weights_applies_annual_line_after_top10_weighting():
     rows = [
@@ -232,126 +228,3 @@ def test_write_strategy_description_saves_run_notes(tmp_path):
     assert "20230702" in content
     assert "交易标的是对应 A 股代码" in content
     assert "target_weights.csv" in content
-
-def test_normalize_a_share_trade_symbol_adds_market_prefix():
-    assert normalize_a_share_trade_symbol("600000") == "SH600000"
-    assert normalize_a_share_trade_symbol("000001") == "SZ000001"
-    assert normalize_a_share_trade_symbol("830799") == "BJ830799"
-    assert normalize_a_share_trade_symbol("sz300750") == "SZ300750"
-
-
-def test_sector_flow_target_weights_selects_top_sector_leaders():
-    date = pd.Timestamp("2026-07-01")
-    sector_features = pd.DataFrame(
-        [
-            {"date": date, "sector_name": "科技", "sector_score": 0.8, "sector_rank": 1},
-            {"date": date, "sector_name": "医药", "sector_score": 0.4, "sector_rank": 2},
-            {"date": date, "sector_name": "煤炭", "sector_score": 0.2, "sector_rank": 3},
-        ]
-    )
-    stock_scores = pd.DataFrame(
-        [
-            {"date": date, "sector_name": "科技", "symbol": "SH600001", "name": "科技A", "sector_score": 0.8, "sector_rank": 1, "stock_score": 0.9, "stock_relative_strength": 0.2, "volume_ratio": 1.5},
-            {"date": date, "sector_name": "科技", "symbol": "SH600002", "name": "科技B", "sector_score": 0.8, "sector_rank": 1, "stock_score": 0.3, "stock_relative_strength": 0.1, "volume_ratio": 1.1},
-            {"date": date, "sector_name": "医药", "symbol": "SZ000001", "name": "医药A", "sector_score": 0.4, "sector_rank": 2, "stock_score": 0.6, "stock_relative_strength": 0.2, "volume_ratio": 1.2},
-            {"date": date, "sector_name": "煤炭", "symbol": "SH600003", "name": "煤炭A", "sector_score": 0.2, "sector_rank": 3, "stock_score": 1.0, "stock_relative_strength": 0.3, "volume_ratio": 2.0},
-        ]
-    )
-
-    weights = build_sector_flow_target_weights(
-        sector_features=sector_features,
-        stock_scores=stock_scores,
-        top_sectors=2,
-        top_stocks_per_sector=1,
-    )
-
-    assert weights["symbol"].tolist() == ["SH600001", "SZ000001"]
-    assert weights["target_weight"].round(6).tolist() == [0.666667, 0.333333]
-    assert weights["sector_name"].tolist() == ["科技", "医药"]
-
-
-def test_build_stock_leader_scores_keeps_stocks_that_outperform_sector():
-    dates = pd.date_range("2026-01-01", periods=21, freq="D")
-    sector_features = pd.DataFrame(
-        [
-            {
-                "date": dates[-1],
-                "sector_name": "科技",
-                "sector_return_20": 0.10,
-                "sector_score": 0.9,
-                "sector_rank": 1,
-            }
-        ]
-    )
-    constituents = pd.DataFrame(
-        [
-            {"sector_name": "科技", "symbol": "SH600001", "name": "强股"},
-            {"sector_name": "科技", "symbol": "SH600002", "name": "弱股"},
-        ]
-    )
-    stock_histories = {
-        "SH600001": pd.DataFrame(
-            {"date": dates, "close": [100.0] * 20 + [130.0], "volume": [100.0] * 21}
-        ),
-        "SH600002": pd.DataFrame(
-            {"date": dates, "close": [100.0] * 20 + [105.0], "volume": [100.0] * 21}
-        ),
-    }
-
-    scores = build_stock_leader_scores(
-        sector_features=sector_features,
-        constituents=constituents,
-        stock_histories=stock_histories,
-        start_date="20260121",
-    )
-
-    assert scores["symbol"].tolist() == ["SH600001"]
-    assert scores["stock_relative_strength"].round(6).tolist() == [0.2]
-
-def test_normalize_sector_flow_history_accepts_akshare_chinese_columns():
-    flow = pd.DataFrame(
-        {
-            "日期": ["2026-07-01"],
-            "主力净流入-净额": ["1,200"],
-            "主力净流入-净占比": ["3.5"],
-        }
-    )
-    price = pd.DataFrame({"日期": ["2026-07-01"], "收盘": [12.3]})
-
-    normalized = normalize_sector_flow_history(flow, price, "测试行业")
-
-    assert normalized[["sector_name", "main_net_flow", "main_net_flow_pct", "sector_close"]].iloc[0].to_dict() == {
-        "sector_name": "测试行业",
-        "main_net_flow": 1200.0,
-        "main_net_flow_pct": 3.5,
-        "sector_close": 12.3,
-    }
-
-def test_run_strategy_preflight_calls_optional_hook(tmp_path):
-    request = StrategyRunRequest(
-        strategy_id="demo",
-        pairs=[],
-        start_date="20260607",
-        end_date="20260707",
-        cache_dir=tmp_path,
-        output_dir=tmp_path / "run_pending",
-    )
-    calls = []
-
-    class DemoStrategy:
-        def preflight(self, received_request):
-            calls.append(received_request)
-
-    run_strategy_preflight(DemoStrategy(), request)
-
-    assert calls == [request]
-
-
-def test_sector_flow_preflight_reports_unavailable_industry_list(monkeypatch):
-    def fail_industry_names():
-        raise RuntimeError("remote disconnected")
-
-    monkeypatch.setattr(sector_flow_features, "_fetch_industry_names", fail_industry_names)
-
-    with pytest.raises(SectorFlowDataSourceError, match="industry list unavailable"):
-        sector_flow_features.preflight_sector_flow_data_sources(start_date="20260607", end_date="20260707")

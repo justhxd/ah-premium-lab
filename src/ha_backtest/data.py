@@ -40,22 +40,6 @@ class AHPair:
         return f"HK{self.h_symbol}"
 
 
-@dataclass(frozen=True)
-class AShareSymbol:
-    code: str
-    name: str = ""
-
-    @property
-    def a_symbol(self) -> str:
-        code = self.code.strip().lower()
-        if code.startswith(("sh", "sz", "bj")):
-            return code[2:]
-        return code
-
-    @property
-    def trade_symbol(self) -> str:
-        return normalize_a_share_trade_symbol(self.code)
-
 
 def load_ah_pairs(path: Path) -> List[AHPair]:
     path = Path(path)
@@ -150,6 +134,7 @@ def build_target_weights(
         annual_line_filter=annual_line_filter,
     )
 
+
 def build_a_share_market_data(
     pairs: Sequence[AHPair],
     start_date: str,
@@ -168,24 +153,6 @@ def build_a_share_market_data(
         data[pair.a_trade_symbol] = hist[["date", "open", "high", "low", "close", "volume", "symbol"]]
     return data
 
-
-def build_a_share_market_data_for_symbols(
-    symbols: Sequence[AShareSymbol],
-    start_date: str,
-    end_date: str,
-    cache_dir: Path,
-    refresh: bool = False,
-) -> dict[str, pd.DataFrame]:
-    client = AkshareHistoryClient(cache_dir=Path(cache_dir), refresh=refresh)
-    data: dict[str, pd.DataFrame] = {}
-    for symbol in symbols:
-        hist = client.fetch_a_share_symbol(symbol, start_date, end_date)
-        if hist.empty:
-            continue
-        hist = hist.copy()
-        hist["symbol"] = symbol.trade_symbol
-        data[symbol.trade_symbol] = hist[["date", "open", "high", "low", "close", "volume", "symbol"]]
-    return data
 
 
 def build_h_share_market_data(
@@ -216,35 +183,31 @@ class AkshareHistoryClient:
         self._init_db()
 
     def fetch_a_share(self, pair: AHPair, start_date: str, end_date: str) -> pd.DataFrame:
-        symbol = AShareSymbol(code=pair.a_trade_symbol, name=pair.name)
-        return self.fetch_a_share_symbol(symbol, start_date, end_date)
-
-    def fetch_a_share_symbol(self, symbol: AShareSymbol, start_date: str, end_date: str) -> pd.DataFrame:
         def fetch(range_start: str, range_end: str) -> pd.DataFrame:
             import akshare as ak
 
             try:
                 df = ak.stock_zh_a_hist(
-                    symbol=symbol.a_symbol,
+                    symbol=pair.a_symbol,
                     period="daily",
                     start_date=range_start,
                     end_date=range_end,
                     adjust="",
                 )
             except Exception as exc:
-                print(f"stock_zh_a_hist failed for {symbol.trade_symbol}; fallback to stock_zh_a_daily: {exc}")
+                print(f"stock_zh_a_hist failed for {pair.a_code}; fallback to stock_zh_a_daily: {exc}")
                 df = ak.stock_zh_a_daily(
-                    symbol=symbol.trade_symbol.lower(),
+                    symbol=pair.a_code.lower(),
                     start_date=range_start,
                     end_date=range_end,
                     adjust="",
                 )
-            return normalize_ohlcv(df, symbol.trade_symbol)
+            return normalize_ohlcv(df, pair.a_trade_symbol)
 
         return self._cached_ohlcv(
             market="a",
-            symbol=symbol.a_symbol,
-            trade_symbol=symbol.trade_symbol,
+            symbol=pair.a_symbol,
+            trade_symbol=pair.a_trade_symbol,
             start_date=start_date,
             end_date=end_date,
             fetch=fetch,
@@ -742,19 +705,6 @@ def _date_key(value: object) -> str:
 def _to_numeric(series: object) -> pd.Series:
     return pd.to_numeric(pd.Series(series).astype(str).str.replace(",", "", regex=False), errors="coerce")
 
-
-def normalize_a_share_trade_symbol(code: object) -> str:
-    text = str(code or "").strip().upper()
-    if text.startswith(("SH", "SZ", "BJ")):
-        return text
-    digits = "".join(char for char in text if char.isdigit())
-    if len(digits) != 6:
-        return text
-    if digits.startswith(("5", "6", "9")):
-        return f"SH{digits}"
-    if digits.startswith(("4", "8")):
-        return f"BJ{digits}"
-    return f"SZ{digits}"
 
 
 def _empty_premium_frame() -> pd.DataFrame:

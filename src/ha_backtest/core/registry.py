@@ -4,7 +4,6 @@ from typing import Protocol
 
 from .context import StrategyMetadata, StrategyRunRequest, StrategyRunResult
 from ..strategies.ha_premium import HAPremiumAnnualLineStrategySpec, HAPremiumStrategySpec
-from ..strategies.sector_flow import SectorFlowRelativeStrengthStrategySpec
 
 
 class StrategySpec(Protocol):
@@ -13,16 +12,11 @@ class StrategySpec(Protocol):
     def run(self, request: StrategyRunRequest) -> StrategyRunResult:
         ...
 
-def run_strategy_preflight(strategy: StrategySpec, request: StrategyRunRequest) -> None:
-    preflight = getattr(strategy, "preflight", None)
-    if callable(preflight):
-        preflight(request)
 
 
 _STRATEGIES: dict[str, StrategySpec] = {
     HAPremiumStrategySpec.metadata.id: HAPremiumStrategySpec(),
     HAPremiumAnnualLineStrategySpec.metadata.id: HAPremiumAnnualLineStrategySpec(),
-    SectorFlowRelativeStrengthStrategySpec.metadata.id: SectorFlowRelativeStrengthStrategySpec(),
 }
 
 

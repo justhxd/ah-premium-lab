@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .core.context import StrategyRunRequest
-from .core.registry import get_strategy, list_strategy_metadata, run_strategy_preflight
+from .core.registry import get_strategy, list_strategy_metadata
 from .data import load_ah_pairs
 from .runner import build_premium_and_weights
 
@@ -64,9 +64,7 @@ def main() -> None:
         integer_percent=args.integer_percent,
         report=not args.no_report,
     )
-    strategy = get_strategy(args.strategy)
-    run_strategy_preflight(strategy, request)
-    result = strategy.run(request)
+    result = get_strategy(args.strategy).run(request)
     print(result.engine_result)
     print(f"output: {run_output_dir}")
 
