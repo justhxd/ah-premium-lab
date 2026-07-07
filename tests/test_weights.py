@@ -1,12 +1,15 @@
 ﻿from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from ha_backtest.cli import _make_run_output_dir
 from ha_backtest.data import AHPair, AkshareHistoryClient, build_target_weights, load_ah_pairs, normalize_a_share_trade_symbol, normalize_fx, _merge_pair_history
-from ha_backtest.core.registry import list_strategy_metadata
+from ha_backtest.core.context import StrategyRunRequest
+from ha_backtest.core.registry import list_strategy_metadata, run_strategy_preflight
 from ha_backtest.runner import write_strategy_description
-from ha_backtest.strategies.sector_flow.features import build_sector_flow_target_weights, build_stock_leader_scores, normalize_sector_flow_history
+from ha_backtest.strategies.sector_flow import features as sector_flow_features
+from ha_backtest.strategies.sector_flow.features import SectorFlowDataSourceError, build_sector_flow_target_weights, build_stock_leader_scores, normalize_sector_flow_history
 
 
 def test_load_default_pairs_keeps_h_code_padding_and_a_trade_symbol():
@@ -323,3 +326,32 @@ def test_normalize_sector_flow_history_accepts_akshare_chinese_columns():
         "main_net_flow_pct": 3.5,
         "sector_close": 12.3,
     }
+
+def test_run_strategy_preflight_calls_optional_hook(tmp_path):
+    request = StrategyRunRequest(
+        strategy_id="demo",
+        pairs=[],
+        start_date="20260607",
+        end_date="20260707",
+        cache_dir=tmp_path,
+        output_dir=tmp_path / "run_pending",
+    )
+    calls = []
+
+    class DemoStrategy:
+        def preflight(self, received_request):
+            calls.append(received_request)
+
+    run_strategy_preflight(DemoStrategy(), request)
+
+    assert calls == [request]
+
+
+def test_sector_flow_preflight_reports_unavailable_industry_list(monkeypatch):
+    def fail_industry_names():
+        raise RuntimeError("remote disconnected")
+
+    monkeypatch.setattr(sector_flow_features, "_fetch_industry_names", fail_industry_names)
+
+    with pytest.raises(SectorFlowDataSourceError, match="industry list unavailable"):
+        sector_flow_features.preflight_sector_flow_data_sources(start_date="20260607", end_date="20260707")

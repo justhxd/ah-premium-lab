@@ -22,7 +22,7 @@ from .cli import DEFAULT_CACHE, DEFAULT_OUTPUT, DEFAULT_PAIRS, _make_run_output_
 from .data import load_ah_pairs
 from .core.context import StrategyRunRequest
 from .core.output import ALLOWED_RESULT_FILES, summarize_akquant_report, summarize_output
-from .core.registry import get_strategy, list_strategy_metadata
+from .core.registry import get_strategy, list_strategy_metadata, run_strategy_preflight
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -277,18 +277,7 @@ def _run_job(job_id: str) -> None:
             raise RuntimeError(f"没有从 {params['pairs']} 读取到 AH 配对。")
 
         output_dir = _make_output_dir(Path(params["output_dir"]), params["strategy"], params["start"], params["end"])
-        output_dir.mkdir(parents=True, exist_ok=True)
-        jobs.update(
-            job_id,
-            progress=18,
-            step="load_pairs",
-            message=f"已读取 {len(pairs)} 个 AH 标的，输出目录已创建。",
-            output_dir=str(output_dir),
-        )
-        _write_run_metadata(output_dir, job, params, "running")
-
         strategy = get_strategy(params["strategy"])
-        jobs.update(job_id, progress=35, step="run_backtest", message="正在拉取或复用行情缓存，并执行 AKQuant 回测。")
         request = StrategyRunRequest(
             strategy_id=params["strategy"],
             pairs=pairs,
@@ -304,6 +293,20 @@ def _run_job(job_id: str) -> None:
             integer_percent=params["integer_percent"],
             report=True,
         )
+        jobs.update(job_id, progress=18, step="preflight", message="Checking data sources before creating output directory.")
+        run_strategy_preflight(strategy, request)
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        jobs.update(
+            job_id,
+            progress=25,
+            step="load_pairs",
+            message=f"Loaded {len(pairs)} AH pairs and created output directory.",
+            output_dir=str(output_dir),
+        )
+        _write_run_metadata(output_dir, job, params, "running")
+
+        jobs.update(job_id, progress=35, step="run_backtest", message="Fetching or reusing market data, then running AKQuant backtest.")
         strategy_result = strategy.run(request)
         run_repr = strategy_result.run_summary
 

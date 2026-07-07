@@ -9,6 +9,7 @@ from .features import (
     TOP_SECTORS,
     TOP_STOCKS_PER_SECTOR,
     build_sector_flow_and_weights,
+    preflight_sector_flow_data_sources,
 )
 
 
@@ -19,6 +20,9 @@ class SectorFlowRelativeStrengthStrategySpec:
         description="\u6309\u884c\u4e1a\u8d44\u91d1\u6d41\u6539\u5584\u548c\u884c\u4e1a\u76f8\u5bf9\u5f3a\u5f31\u9009\u677f\u5757\uff0c\u518d\u4e70\u5165\u677f\u5757\u5185\u8dd1\u8d62\u884c\u4e1a\u4e14\u91cf\u80fd\u653e\u5927\u7684\u9f99\u5934\u80a1\u3002",
         command="run",
     )
+
+    def preflight(self, request: StrategyRunRequest) -> None:
+        preflight_sector_flow_data_sources(start_date=request.start_date, end_date=request.end_date)
 
     def run(self, request: StrategyRunRequest) -> StrategyRunResult:
         built = build_sector_flow_and_weights(

@@ -13,6 +13,11 @@ class StrategySpec(Protocol):
     def run(self, request: StrategyRunRequest) -> StrategyRunResult:
         ...
 
+def run_strategy_preflight(strategy: StrategySpec, request: StrategyRunRequest) -> None:
+    preflight = getattr(strategy, "preflight", None)
+    if callable(preflight):
+        preflight(request)
+
 
 _STRATEGIES: dict[str, StrategySpec] = {
     HAPremiumStrategySpec.metadata.id: HAPremiumStrategySpec(),

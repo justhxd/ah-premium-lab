@@ -23,6 +23,33 @@ class SectorFlowBuildResult:
     market_data: dict[str, pd.DataFrame]
 
 
+
+class SectorFlowDataSourceError(RuntimeError):
+    pass
+
+
+def preflight_sector_flow_data_sources(*, start_date: str, end_date: str) -> None:
+    try:
+        sector_names = _fetch_industry_names()
+    except Exception as exc:
+        raise SectorFlowDataSourceError(f"sector industry list unavailable: {exc}") from exc
+    if not sector_names:
+        raise SectorFlowDataSourceError("sector industry list is empty")
+
+    sample_sector = sector_names[0]
+    checks = [
+        ("sector fund-flow history", lambda: _fetch_sample_sector_flow_history(sample_sector)),
+        ("sector price history", lambda: _fetch_sample_sector_price_history(sample_sector, start_date, end_date)),
+        ("sector constituents", lambda: _fetch_sample_sector_constituents(sample_sector)),
+    ]
+    for label, fetch in checks:
+        try:
+            frame = fetch()
+        except Exception as exc:
+            raise SectorFlowDataSourceError(f"{label} unavailable for {sample_sector}: {exc}") from exc
+        if frame.empty:
+            raise SectorFlowDataSourceError(f"{label} returned no rows for {sample_sector}")
+
 def build_sector_flow_and_weights(
     *,
     start_date: str,
@@ -291,6 +318,29 @@ def _fetch_industry_names() -> list[str]:
     name_col = _find_column(df, ["\u677f\u5757\u540d\u79f0", "\u540d\u79f0", "name"])
     return [str(value) for value in df[name_col].dropna().tolist()]
 
+
+def _fetch_sample_sector_flow_history(sector_name: str) -> pd.DataFrame:
+    import akshare as ak
+
+    return ak.stock_sector_fund_flow_hist(symbol=sector_name)
+
+
+def _fetch_sample_sector_price_history(sector_name: str, start_date: str, end_date: str) -> pd.DataFrame:
+    import akshare as ak
+
+    return ak.stock_board_industry_hist_em(
+        symbol=sector_name,
+        start_date=start_date,
+        end_date=end_date,
+        period="\u65e5k",
+        adjust="",
+    )
+
+
+def _fetch_sample_sector_constituents(sector_name: str) -> pd.DataFrame:
+    import akshare as ak
+
+    return ak.stock_board_industry_cons_em(symbol=sector_name)
 
 def _fetch_sector_histories(sector_names: Iterable[str], start_date: str, end_date: str) -> list[pd.DataFrame]:
     import akshare as ak
