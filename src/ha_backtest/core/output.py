@@ -14,6 +14,8 @@ ALLOWED_RESULT_FILES = {
     "ha_premium_history.csv",
     "target_weights.csv",
     "last_premium_snapshot.csv",
+    "sector_flow_features.csv",
+    "stock_leader_scores.csv",
 }
 
 

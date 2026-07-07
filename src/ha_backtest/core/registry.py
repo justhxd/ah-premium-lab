@@ -4,6 +4,7 @@ from typing import Protocol
 
 from .context import StrategyMetadata, StrategyRunRequest, StrategyRunResult
 from ..strategies.ha_premium import HAPremiumAnnualLineStrategySpec, HAPremiumStrategySpec
+from ..strategies.sector_flow import SectorFlowRelativeStrengthStrategySpec
 
 
 class StrategySpec(Protocol):
@@ -16,6 +17,7 @@ class StrategySpec(Protocol):
 _STRATEGIES: dict[str, StrategySpec] = {
     HAPremiumStrategySpec.metadata.id: HAPremiumStrategySpec(),
     HAPremiumAnnualLineStrategySpec.metadata.id: HAPremiumAnnualLineStrategySpec(),
+    SectorFlowRelativeStrengthStrategySpec.metadata.id: SectorFlowRelativeStrengthStrategySpec(),
 }
 
 
