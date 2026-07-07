@@ -15,8 +15,8 @@ from .features import (
 class SectorFlowRelativeStrengthStrategySpec:
     metadata = StrategyMetadata(
         id="sector-flow-relative-strength",
-        name="行业资金流比价龙头 MVP",
-        description="先按行业资金流改善和行业指数相对强弱选强板块，再买入板块内跑赢行业且量能放大的龙头股。",
+        name="\u884c\u4e1a\u8d44\u91d1\u6d41\u6bd4\u4ef7\u9f99\u5934 MVP",
+        description="\u6309\u884c\u4e1a\u8d44\u91d1\u6d41\u6539\u5584\u548c\u884c\u4e1a\u76f8\u5bf9\u5f3a\u5f31\u9009\u677f\u5757\uff0c\u518d\u4e70\u5165\u677f\u5757\u5185\u8dd1\u8d62\u884c\u4e1a\u4e14\u91cf\u80fd\u653e\u5927\u7684\u9f99\u5934\u80a1\u3002",
         command="run",
     )
 
@@ -58,7 +58,7 @@ class SectorFlowRelativeStrengthStrategySpec:
         if request.report:
             report_path = request.output_dir / "akquant_ha_report.html"
             result.report(filename=str(report_path), show=False)
-            _retitle_akquant_report(report_path, f"{self.metadata.name}回测报告")
+            _retitle_akquant_report(report_path, f"{self.metadata.name}\u56de\u6d4b\u62a5\u544a")
 
         return StrategyRunResult(
             output_dir=request.output_dir,
@@ -71,5 +71,5 @@ def _retitle_akquant_report(report_path, title: str) -> None:
     if not report_path.exists():
         return
     html = report_path.read_text(encoding="utf-8", errors="ignore")
-    html = html.replace("AKQuant 策略回测报告", title)
+    html = html.replace("AKQuant \u7b56\u7565\u56de\u6d4b\u62a5\u544a", title)
     report_path.write_text(html, encoding="utf-8")

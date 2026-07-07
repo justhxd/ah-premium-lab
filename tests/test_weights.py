@@ -6,7 +6,7 @@ from ha_backtest.cli import _make_run_output_dir
 from ha_backtest.data import AHPair, AkshareHistoryClient, build_target_weights, load_ah_pairs, normalize_a_share_trade_symbol, normalize_fx, _merge_pair_history
 from ha_backtest.core.registry import list_strategy_metadata
 from ha_backtest.runner import write_strategy_description
-from ha_backtest.strategies.sector_flow.features import build_sector_flow_target_weights, build_stock_leader_scores
+from ha_backtest.strategies.sector_flow.features import build_sector_flow_target_weights, build_stock_leader_scores, normalize_sector_flow_history
 
 
 def test_load_default_pairs_keeps_h_code_padding_and_a_trade_symbol():
@@ -304,3 +304,22 @@ def test_build_stock_leader_scores_keeps_stocks_that_outperform_sector():
 
     assert scores["symbol"].tolist() == ["SH600001"]
     assert scores["stock_relative_strength"].round(6).tolist() == [0.2]
+
+def test_normalize_sector_flow_history_accepts_akshare_chinese_columns():
+    flow = pd.DataFrame(
+        {
+            "日期": ["2026-07-01"],
+            "主力净流入-净额": ["1,200"],
+            "主力净流入-净占比": ["3.5"],
+        }
+    )
+    price = pd.DataFrame({"日期": ["2026-07-01"], "收盘": [12.3]})
+
+    normalized = normalize_sector_flow_history(flow, price, "测试行业")
+
+    assert normalized[["sector_name", "main_net_flow", "main_net_flow_pct", "sector_close"]].iloc[0].to_dict() == {
+        "sector_name": "测试行业",
+        "main_net_flow": 1200.0,
+        "main_net_flow_pct": 3.5,
+        "sector_close": 12.3,
+    }

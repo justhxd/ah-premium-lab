@@ -261,11 +261,11 @@ def build_sector_flow_target_weights(
 def normalize_sector_flow_history(flow: pd.DataFrame, price: pd.DataFrame, sector_name: str) -> pd.DataFrame:
     if flow.empty or price.empty:
         return pd.DataFrame()
-    flow_date_col = _find_column(flow, ["date", "日期"])
-    main_flow_col = _find_column(flow, ["main_net_flow", "主力净流入-净额"])
-    main_pct_col = _find_column(flow, ["main_net_flow_pct", "主力净流入-净占比"])
-    price_date_col = _find_column(price, ["date", "日期"])
-    close_col = _find_column(price, ["close", "收盘"])
+    flow_date_col = _find_column(flow, ["date", "\u65e5\u671f"])
+    main_flow_col = _find_column(flow, ["main_net_flow", "\u4e3b\u529b\u51c0\u6d41\u5165-\u51c0\u989d"])
+    main_pct_col = _find_column(flow, ["main_net_flow_pct", "\u4e3b\u529b\u51c0\u6d41\u5165-\u51c0\u5360\u6bd4"])
+    price_date_col = _find_column(price, ["date", "\u65e5\u671f"])
+    close_col = _find_column(price, ["close", "\u6536\u76d8"])
     out_flow = pd.DataFrame(
         {
             "date": pd.to_datetime(flow[flow_date_col]).dt.tz_localize(None).dt.normalize(),
@@ -288,7 +288,7 @@ def _fetch_industry_names() -> list[str]:
     import akshare as ak
 
     df = ak.stock_board_industry_name_em()
-    name_col = _find_column(df, ["板块名称", "名称", "name"])
+    name_col = _find_column(df, ["\u677f\u5757\u540d\u79f0", "\u540d\u79f0", "name"])
     return [str(value) for value in df[name_col].dropna().tolist()]
 
 
@@ -299,7 +299,7 @@ def _fetch_sector_histories(sector_names: Iterable[str], start_date: str, end_da
     for sector_name in sector_names:
         try:
             flow = ak.stock_sector_fund_flow_hist(symbol=sector_name)
-            price = ak.stock_board_industry_hist_em(symbol=sector_name, start_date=start_date, end_date=end_date, period="日k", adjust="")
+            price = ak.stock_board_industry_hist_em(symbol=sector_name, start_date=start_date, end_date=end_date, period="\u65e5k", adjust="")
             normalized = normalize_sector_flow_history(flow, price, sector_name)
             if not normalized.empty:
                 histories.append(normalized)
@@ -318,8 +318,8 @@ def _fetch_sector_constituents(sector_names: Sequence[str]) -> pd.DataFrame:
         except Exception as exc:
             print(f"skip constituents for {sector_name}: {exc}")
             continue
-        code_col = _find_column(df, ["代码", "code"])
-        name_col = _find_column(df, ["名称", "name"], required=False)
+        code_col = _find_column(df, ["\u4ee3\u7801", "code"])
+        name_col = _find_column(df, ["\u540d\u79f0", "name"], required=False)
         for _, row in df.iterrows():
             symbol = normalize_a_share_trade_symbol(row[code_col])
             if not symbol.startswith(("SH", "SZ", "BJ")):

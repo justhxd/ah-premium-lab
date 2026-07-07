@@ -20,38 +20,38 @@ def write_strategy_description(
 ) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / "strategy_description.md"
-    text = f"""# 行业资金流比价龙头策略 MVP
+    text = f"""# Sector Flow Relative Strength MVP
 
-## 策略逻辑
+## Strategy Logic
 
-本策略把缠论里“股票处在市场比价关系中，资金流向变化可以构成买卖系统”的思路拆成两层：先按行业板块资金流和相对强弱选板块，再在入选板块中选相对板块更强、量能更活跃的龙头股。
+This MVP first scores industry sectors by improving main-fund flow and relative sector strength, then buys the strongest stocks inside the selected sectors. Stock leadership is defined by outperformance versus its sector plus stronger recent volume.
 
-## 运行参数
+## Run Parameters
 
-- 回测区间：`{start_date}` 到 `{end_date}`
-- 初始资金：`{initial_cash}`
-- 总仓位上限：`{gross_exposure}`
-- 整数百分比权重：`{integer_percent}`
-- 行业池规模：`{sector_pool_size}`
-- 每日入选行业数：`{top_sectors}`
-- 每行业龙头数：`{top_stocks_per_sector}`
-- 相对强弱窗口：`{lookback_days}` 个交易日
-- 强制刷新行情缓存：`{refresh}`
-- 生成 AKQuant 报告：`{report}`
+- Backtest window: `{start_date}` to `{end_date}`
+- Initial cash: `{initial_cash}`
+- Gross exposure cap: `{gross_exposure}`
+- Integer-percent weights: `{integer_percent}`
+- Sector pool size: `{sector_pool_size}`
+- Selected sectors per day: `{top_sectors}`
+- Leaders per sector: `{top_stocks_per_sector}`
+- Relative-strength window: `{lookback_days}` trading days
+- Refresh market cache: `{refresh}`
+- Generate AKQuant report: `{report}`
 
-## 输出文件
+## Output Files
 
-- `sector_flow_features.csv`：行业资金流、行业指数相对强弱和行业评分。
-- `stock_leader_scores.csv`：入选行业成分股的相对强弱、量能和龙头评分。
-- `target_weights.csv`：每日目标权重。
-- `last_premium_snapshot.csv`：最后一个交易日的行业信号快照。
-- `akquant_ha_report.html`：AKQuant 回测报告。
+- `sector_flow_features.csv`: sector flow, sector relative strength, and sector scores.
+- `stock_leader_scores.csv`: stock relative strength, volume ratio, and leadership scores.
+- `target_weights.csv`: daily target weights.
+- `last_premium_snapshot.csv`: latest sector signal snapshot.
+- `akquant_ha_report.html`: AKQuant backtest report.
 
-## MVP 限制
+## MVP Limits
 
-- 板块成分股使用东方财富当前成分，历史回测会存在成分股幸存者偏差。
-- 个股长历史资金流可得性较弱，MVP 用个股相对板块强弱和量能放大定义龙头；个股资金流适合后续做近端增强或从现在开始每日落库。
-- 为控制数据源压力，先按全区间平均行业评分限制行业池规模，再做每日选板块。
+- Sector constituents come from current Eastmoney constituents, so long historical backtests have constituent survivorship bias.
+- Long individual-stock fund-flow history is weak; the MVP uses price relative strength and volume as the stock leader proxy.
+- To reduce data-source pressure, the strategy first limits the sector pool by average sector score over the requested window.
 """
     path.write_text(text, encoding="utf-8")
     return path
