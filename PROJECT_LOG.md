@@ -1,8 +1,14 @@
-﻿# Project Log
+# Project Log
 
 按日期倒序记录每次较大改动的大概内容。每条保持简短，便于之后回看项目演进。
 
 ## 2026-07-08
+
+### 优化 GitHub 入门 README
+
+- 改动概要：重写 README 为面向新用户的项目介绍、运行条件、安装、Web UI、CLI、输出、缓存和验证说明；同步放宽项目和脚本中的 Python 版本检查为 Python 3.10+。
+- 验证：运行 `python -m compileall -q src tests diagnose_backtest_run.py`、`python -m pytest`、`./scripts/check.ps1 -SkipSmoke` 和 `./scripts/check.ps1`。
+- 提交：本次提交。
 
 ### 调整执行台默认日期
 

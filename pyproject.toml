@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "ha-akquant-backtest"
 version = "0.1.0"
 description = "H/A premium recomputation and AKQuant backtesting with AKShare data."
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.10"
 dependencies = [
     "akshare>=1.18.63",
     "akquant",
@@ -25,5 +25,3 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-
-

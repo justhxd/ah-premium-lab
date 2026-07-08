@@ -33,8 +33,11 @@ function Resolve-Python {
     if ($LASTEXITCODE -ne 0) {
         throw "Cannot run Python command: $($resolved.Source)"
     }
-    if (-not ($version -match '^3\.11\.')) {
-        throw "Python 3.11 is required, but $($resolved.Source) is $version"
+    $versionParts = $version -split "\."
+    $major = [int]$versionParts[0]
+    $minor = [int]$versionParts[1]
+    if ($major -lt 3 -or ($major -eq 3 -and $minor -lt 10)) {
+        throw "Python 3.10 or newer is required, but $($resolved.Source) is $version"
     }
 
     return $resolved.Source
@@ -66,7 +69,7 @@ $process.Id | Set-Content -Encoding utf8 $PidFile
 Start-Sleep -Seconds 2
 $listenerPid = Get-ListenerPid -Port $Port
 if (-not $listenerPid) {
-    throw "Web UI did not start on $Url. Try running: python -X utf8 -m ha_backtest.web"
+    throw "Web UI did not start on $Url. Try running: python -m ha_backtest.web"
 }
 
 Write-Host "Web UI started: $Url (PID $listenerPid)."

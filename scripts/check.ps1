@@ -26,8 +26,11 @@ function Resolve-Python {
     if ($LASTEXITCODE -ne 0) {
         throw "Cannot run Python command: $($resolved.Source)"
     }
-    if (-not ($version -match '^3\.11\.')) {
-        throw "Python 3.11 is required, but $($resolved.Source) is $version"
+    $versionParts = $version -split "\."
+    $major = [int]$versionParts[0]
+    $minor = [int]$versionParts[1]
+    if ($major -lt 3 -or ($major -eq 3 -and $minor -lt 10)) {
+        throw "Python 3.10 or newer is required, but $($resolved.Source) is $version"
     }
 
     return $resolved.Source
