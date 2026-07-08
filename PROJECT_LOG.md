@@ -4,6 +4,13 @@
 
 ## 2026-07-08
 
+### 调整执行台默认日期
+
+- 改动概要：执行台日期输入不再写死历史日期，页面加载时默认结束日期为当天、开始日期为一年前，并同步命令预览。
+- 验证：运行 `node --check ui/app.js`、`python -m pytest tests/test_output_summary.py tests/test_web_history.py tests/test_weights.py`、`./scripts/check.ps1`，并用 Web UI 确认默认区间为 `2025-07-08` 至 `2026-07-08`。
+- 提交：本次提交。
+
+
 ### 修复执行台曲线展示区间
 
 - 改动概要：执行台权益曲线改为按 AKQuant 权益金额自动缩放，仓位曲线改为返回本次回测全区间数据；补充摘要回归测试。

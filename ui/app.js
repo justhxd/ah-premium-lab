@@ -51,6 +51,26 @@ function toCliDate(value) {
   return value.replaceAll("-", "");
 }
 
+function formatDateInput(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function oneYearAgo(date) {
+  const result = new Date(date.getFullYear() - 1, date.getMonth(), date.getDate());
+  if (result.getMonth() !== date.getMonth()) {
+    return new Date(date.getFullYear() - 1, date.getMonth() + 1, 0);
+  }
+  return result;
+}
+
+function initializeDefaultDates(today = new Date()) {
+  const currentDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  els.endDate.value = formatDateInput(currentDate);
+  els.startDate.value = formatDateInput(oneYearAgo(currentDate));
+}
 function getDurationDays() {
   const start = new Date(els.startDate.value);
   const end = new Date(els.endDate.value);
@@ -853,6 +873,7 @@ historyEls.navButtons.forEach((button) => {
   historyEls.sharpeFilter,
 ].forEach((control) => control.addEventListener("input", renderHistory));
 
+initializeDefaultDates();
 syncHistoryStrategyOptions();
 renderHistory();
 resetResult();
