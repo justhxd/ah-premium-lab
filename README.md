@@ -15,12 +15,12 @@
 
 本项目强制使用 Python 3.11 x64。不要使用系统里旧的 Python 3.9.2rc1；该版本导入 `akquant` 会因为 `python3.dll` 缺少 ABI 符号而 DLL 加载失败。
 
-涉及 `py` 启动器的命令统一写成 `py -3.11 -X utf8 ...`；项目脚本默认使用 `.venv\Scripts\python.exe -X utf8 ...`，避免 Windows 中文路径、PowerShell 输出编码和默认 `python` 指向不同版本导致的乱码或 ABI 问题。PowerShell 写文本文件时统一显式使用 `-Encoding utf8`。
+涉及 Python 的命令统一写成 `python -X utf8 ...`；项目脚本会校验默认 `python` 必须是 3.11，避免 Windows 中文路径、PowerShell 输出编码和 Python 版本漂移导致的乱码或 ABI 问题。PowerShell 写文本文件时统一显式使用 `-Encoding utf8`。
 
-推荐始终使用项目虚拟环境里的解释器：
+推荐确认默认 `python` 就是 3.11：
 
 ```powershell
-.\.venv\Scripts\python.exe -X utf8 --version
+python -X utf8 --version
 ```
 
 应显示：
@@ -29,20 +29,20 @@
 Python 3.11.9
 ```
 
-如需重新创建环境：
+如需重新创建可选虚拟环境：
 
 ```powershell
 py -3.11 -X utf8 -m venv .venv
-.\.venv\Scripts\python.exe -X utf8 -m pip install -U pip setuptools wheel
-.\.venv\Scripts\python.exe -X utf8 -m pip install -e . pytest
+python -X utf8 -m pip install -U pip setuptools wheel
+python -X utf8 -m pip install -e . pytest
 ```
 
 ## 安装
 
-当前项目已经创建好 `.venv`。后续安装/更新依赖时使用：
+当前脚本默认使用系统 `python`。后续安装/更新依赖时使用：
 
 ```powershell
-.\.venv\Scripts\python.exe -X utf8 -m pip install -e . pytest
+python -X utf8 -m pip install -e . pytest
 ```
 
 ## 开发启动
@@ -62,7 +62,7 @@ py -3.11 -X utf8 -m venv .venv
 也可以直接使用 Python 入口指定监听地址：
 
 ```powershell
-.\.venv\Scripts\python.exe -X utf8 -m ha_backtest.web --host 127.0.0.1 --port 8765
+python -X utf8 -m ha_backtest.web --host 127.0.0.1 --port 8765
 ```
 
 ## 验证命令
@@ -75,8 +75,8 @@ py -3.11 -X utf8 -m venv .venv
 
 该脚本会依次执行：
 
-- Python 编译检查：`.\.venv\Scripts\python.exe -X utf8 -m compileall -q src tests diagnose_backtest_run.py`
-- 单元测试：`.\.venv\Scripts\python.exe -X utf8 -m pytest`
+- Python 编译检查：`python -X utf8 -m compileall -q src tests diagnose_backtest_run.py`
+- 单元测试：`python -X utf8 -m pytest`
 - 前端语法检查：`node --check ui\*.js`
 - 关键 API smoke test：临时启动 `ha_backtest.web`，检查 `/api/strategies` 和 `/api/status`
 
@@ -104,7 +104,7 @@ py -3.11 -X utf8 -m venv .venv
 
 ## 常见失败
 
-- `Cannot find Python interpreter`：先按“Python 版本要求”和“安装”章节创建 `.venv` 并安装依赖。
+- `Cannot find Python command` 或 Python 版本不符：确认默认 `python` 是 Python 3.11 x64，并按“安装”章节安装依赖。
 - `Cannot find node`：安装 Node.js 后重跑验证。
 - `pytest` 导入 `akquant` 失败：确认正在使用 Python 3.11 x64，不要使用系统旧版 Python 3.9.2rc1。
 - API smoke test 超时：确认指定端口未被占用，或改用 `.\scripts\check.ps1 -SmokePort 其他端口`。
@@ -112,7 +112,7 @@ py -3.11 -X utf8 -m venv .venv
 ## 构建历史溢价和每日权重
 
 ```powershell
-.\.venv\Scripts\python.exe -X utf8 -m ha_backtest.cli build-premium --start 20250101 --end 20260702
+python -X utf8 -m ha_backtest.cli build-premium --start 20250101 --end 20260702
 ```
 
 输出：
@@ -123,13 +123,13 @@ py -3.11 -X utf8 -m venv .venv
 也可以显式指定完整配对文件：
 
 ```powershell
-.\.venv\Scripts\python.exe -X utf8 -m ha_backtest.cli build-premium --pairs config/ah_pairs_full.csv --start 20250101 --end 20260702
+python -X utf8 -m ha_backtest.cli build-premium --pairs config/ah_pairs_full.csv --start 20250101 --end 20260702
 ```
 
 ## 运行 AKQuant 回测
 
 ```powershell
-.\.venv\Scripts\python.exe -X utf8 -m ha_backtest.cli run --start 20250101 --end 20260702 --initial-cash 1000000
+python -X utf8 -m ha_backtest.cli run --start 20250101 --end 20260702 --initial-cash 1000000
 ```
 
 每次运行都会在 `--output-dir` 指定的根目录下创建一个独立子目录。默认根目录是 `data`，子目录形如：
@@ -149,7 +149,7 @@ data/run_20250101_20260702_20260702_170512
 默认交易 A 股历史行情，symbol 形如 `SZ300750` / `SH600036`；H 股价格只用于计算 H/A 溢价信号。如需使用整数百分比权重分配，可加：
 
 ```powershell
-.\.venv\Scripts\python.exe -X utf8 -m ha_backtest.cli run --start 20250101 --end 20260702 --integer-percent
+python -X utf8 -m ha_backtest.cli run --start 20250101 --end 20260702 --integer-percent
 ```
 
 ## 策略公式
@@ -176,7 +176,7 @@ A 股目标权重 = 偏移量 / 偏移量总和 * 总仓位上限
 
 ## 策略开发约定
 
-每次新增策略、信号或指标时，先检查 AKShare 官方文档和当前虚拟环境里的 AKShare 函数，优先使用 AKShare 已经提供的原始数据或现成指标；只有 AKShare 没有对应指标、覆盖范围不满足回测要求，或接口只提供当前快照而不提供历史日期时，才在本项目里手工计算，并在代码或文档里写明原因。
+每次新增策略、信号或指标时，先检查 AKShare 官方文档和当前 Python 环境里的 AKShare 函数，优先使用 AKShare 已经提供的原始数据或现成指标；只有 AKShare 没有对应指标、覆盖范围不满足回测要求，或接口只提供当前快照而不提供历史日期时，才在本项目里手工计算，并在代码或文档里写明原因。
 
 本策略的 250 日年线已经核查过 AKShare：官方文档中有同花顺技术选股接口 `stock_rank_xstp_ths(symbol="250日均线")` 和 `stock_rank_xxtp_ths(symbol="250日均线")`，可以返回当前“向上突破/向下突破 250 日均线”的股票列表，但接口没有历史日期参数，不能用于逐日历史回测判断。因此这里继续基于 AKShare 的 A 股历史日线收盘价手工滚动计算 250 个交易日均线。
 

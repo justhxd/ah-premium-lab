@@ -61,7 +61,7 @@ function getDurationDays() {
 function buildCommand() {
   const strategy = strategies[els.strategySelect.value];
   const parts = [
-    ".\\.venv\\Scripts\\python.exe -m ha_backtest.cli",
+    "python -X utf8 -m ha_backtest.cli",
     strategy.command,
     "--start",
     toCliDate(els.startDate.value),

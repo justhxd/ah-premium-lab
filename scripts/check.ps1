@@ -10,9 +10,28 @@ $ErrorActionPreference = "Stop"
 $OutputEncoding = [Console]::OutputEncoding
 $Root = Split-Path -Parent $PSScriptRoot
 if (-not $Python) {
-    $Python = Join-Path $Root ".venv\Scripts\python.exe"
+    $Python = "python"
 }
 $PythonUtf8Args = @("-X", "utf8")
+
+function Resolve-Python {
+    param([string]$Command)
+
+    $resolved = Get-Command $Command -ErrorAction SilentlyContinue
+    if (-not $resolved) {
+        throw "Cannot find Python command: $Command"
+    }
+
+    $version = & $resolved.Source -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Cannot run Python command: $($resolved.Source)"
+    }
+    if (-not ($version -match '^3\.11\.')) {
+        throw "Python 3.11 is required, but $($resolved.Source) is $version"
+    }
+
+    return $resolved.Source
+}
 
 function Invoke-CheckedCommand {
     param(
@@ -53,7 +72,7 @@ function Invoke-ApiSmokeTest {
     Write-Host "==> API smoke test"
 
     $psi = [System.Diagnostics.ProcessStartInfo]::new()
-    $psi.FileName = $Python
+    $psi.FileName = $PythonExe
     $psi.Arguments = "-X utf8 -m ha_backtest.web --host 127.0.0.1 --port $SmokePort"
     $psi.WorkingDirectory = $Root
     $psi.UseShellExecute = $false
@@ -81,20 +100,18 @@ function Invoke-ApiSmokeTest {
     }
 }
 
-if (-not (Test-Path $Python)) {
-    throw "Cannot find Python interpreter: $Python"
-}
+$PythonExe = Resolve-Python -Command $Python
 
 Push-Location $Root
 try {
     Invoke-CheckedCommand `
         -Name "Python compile" `
-        -FilePath $Python `
+        -FilePath $PythonExe `
         -Arguments ($PythonUtf8Args + @("-m", "compileall", "-q", "src", "tests", "diagnose_backtest_run.py"))
 
     Invoke-CheckedCommand `
         -Name "pytest" `
-        -FilePath $Python `
+        -FilePath $PythonExe `
         -Arguments ($PythonUtf8Args + @("-m", "pytest"))
 
     $node = Get-Command node -ErrorAction SilentlyContinue

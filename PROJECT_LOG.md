@@ -2,6 +2,14 @@
 
 按日期倒序记录每次较大改动的大概内容。每条保持简短，便于之后回看项目演进。
 
+## 2026-07-08
+
+### 将启动脚本切换到默认 Python 3.11
+
+- 改动概要：Web UI 启动脚本和统一校验脚本默认使用系统 `python`，启动前校验必须为 Python 3.11；README 和前端命令示例同步去掉 `.venv` 强依赖。
+- 验证：运行 `python --version`、`py -3.11 --version`、`python -X utf8 -m pip install -e . pytest` 和 `./scripts/check.ps1`。
+- 提交：本次提交。
+
 ## 2026-07-07
 
 ### 删除行业资金流比价龙头 MVP 策略
