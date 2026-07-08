@@ -19,7 +19,7 @@
 
 请先准备：
 
-- Python 3.10 或更新版本
+- Python 3.10 或更高版本
 - pip
 - 可访问 AKShare 数据源的网络环境
 - Node.js：仅在运行完整校验脚本时需要，用于检查前端 JavaScript 语法
@@ -34,11 +34,9 @@
 
 ## 快速开始
 
-克隆仓库后，在项目根目录创建虚拟环境并安装依赖：
+克隆仓库后，在项目根目录安装依赖：
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
 python -m pip install -U pip setuptools wheel
 python -m pip install -e ".[dev]"
 ```
@@ -48,6 +46,8 @@ python -m pip install -e ".[dev]"
 ```powershell
 python -m pip install -e .
 ```
+
+建议在独立的 Python 环境中安装依赖，避免和系统里其他项目的包版本互相影响；环境名称不做要求。
 
 ## 启动 Web UI
 
