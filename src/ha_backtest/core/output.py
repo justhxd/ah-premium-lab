@@ -62,7 +62,7 @@ def summarize_output(output_dir: Path, run_repr: str) -> dict[str, Any]:
     exposure_series = []
     if not weights.empty and {"date", "target_weight"}.issubset(weights.columns):
         grouped = weights.groupby("date", dropna=True)["target_weight"].sum().reset_index()
-        for row in grouped.tail(120).to_dict(orient="records"):
+        for row in grouped.to_dict(orient="records"):
             exposure_series.append(
                 {
                     "date": pd.Timestamp(row["date"]).strftime("%Y-%m-%d"),

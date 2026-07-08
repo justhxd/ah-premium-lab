@@ -252,7 +252,7 @@ function renderResult(job) {
   els.reportChartCaption.textContent = "";
   els.exposureChartCaption.textContent = result.latestDate ? `截至 ${result.latestDate} 的每日目标仓位` : "本次任务无可展示仓位曲线";
   renderWeights(result.weights || []);
-  drawLineChart(els.reportCanvas, result.equitySeries || [], { emptyText: "执行完成后显示 AKQuant 权益曲线", color: "#11685f", xLabel: "日期", yLabel: "权益", minValue: 0, maxValue: 1 });
+  drawLineChart(els.reportCanvas, result.equitySeries || [], { emptyText: "执行完成后显示 AKQuant 权益曲线", color: "#11685f", xLabel: "日期", yLabel: "权益" });
   drawLineChart(els.exposureCanvas, result.exposureSeries || [], { emptyText: "执行完成后显示每日目标仓位", color: "#3776ab", minValue: 0, maxValue: 1, xLabel: "日期", yLabel: "仓位" });
 }
 

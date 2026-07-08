@@ -4,6 +4,13 @@
 
 ## 2026-07-08
 
+### 修复执行台曲线展示区间
+
+- 改动概要：执行台权益曲线改为按 AKQuant 权益金额自动缩放，仓位曲线改为返回本次回测全区间数据；补充摘要回归测试。
+- 验证：运行 `python -m pytest tests/test_output_summary.py tests/test_web_history.py`、`node --check ui/app.js`、`./scripts/check.ps1`，并用 Web UI 跑 `H/A 溢价年线过滤` 的 `2024-07-02` 至 `2026-07-02` 缓存回测确认两条曲线显示正常。
+- 提交：本次提交。
+
+
 ### 将启动脚本切换到默认 Python 3.11
 
 - 改动概要：Web UI 启动脚本和统一校验脚本默认使用系统 `python`，启动前校验必须为 Python 3.11；README 和前端命令示例同步去掉 `.venv` 强依赖。
