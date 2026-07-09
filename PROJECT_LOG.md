@@ -4,6 +4,12 @@
 
 ## 2026-07-09
 
+### 补充 README AKQuant 报告示例
+
+- 改动概要：新增 AKQuant HTML 报告截图，并在 README 的 Web UI 预览中补充报告示例图和本地报告链接。
+- 验证：运行 `git diff --check README.md PROJECT_LOG.md`，并检查 `docs/images/akquant-report-example.png` 存在。
+- 提交：本次提交。
+
 ### 补充 README Web UI 示例截图
 
 - 改动概要：新增 `docs/images` 下的 Web UI 截图资产，并在 README 中补充执行台、执行完成、运行总览和历史回测说明；加入一组示例回测指标用于快速理解输出。

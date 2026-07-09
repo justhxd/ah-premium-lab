@@ -105,6 +105,14 @@ python -m ha_backtest.web --host 127.0.0.1 --port 8765
 
 示例结果中，`H/A 溢价目标权重` 在 `2025-07-09` 至 `2026-07-09` 区间内的报告摘要为：累计收益率 `80.85%`、年化收益率 `80.85%`、最大回撤 `9.60%`、夏普比率 `2.33`。这些数值只用于说明界面和输出格式，不构成投资建议。
 
+### 5. AKQuant 报告示例
+
+AKQuant HTML 报告会展示回测区间、初始资金、最终权益和关键指标，便于进一步查看策略表现。
+
+![AKQuant 报告示例](docs/images/akquant-report-example.png)
+
+本地 Web UI 启动且对应报告仍存在时，可以打开示例报告链接：[akquant_ha_report.html](http://127.0.0.1:8765/api/files/7db49b1cd31b/akquant_ha_report.html)。
+
 ## 命令行用法
 
 构建历史 H/A 溢价和目标权重：
