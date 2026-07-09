@@ -4,6 +4,12 @@
 
 ## 2026-07-09
 
+### 修复示例报告在线预览曲线渲染
+
+- 改动概要：将 `examples/akquant_ha_report.html` 改为内嵌 Plotly 脚本的自包含 HTML，避免在线预览时因外部 CDN 脚本未加载而看不到权益和回撤曲线；README 同步说明。
+- 验证：运行 `Select-String -Path examples/akquant_ha_report.html -Pattern '<script src='`、`Select-String -Path examples/akquant_ha_report.html -Pattern 'Plotly.newPlot'` 和 `git diff --check README.md PROJECT_LOG.md examples/akquant_ha_report.html`。
+- 提交：本次提交。
+
 ### 提交示例 AKQuant HTML 报告
 
 - 改动概要：新增 `examples/akquant_ha_report.html`，并将 README 中的本地报告链接改为仓库示例文件和在线预览链接，方便未运行项目的用户查看报告内容。
