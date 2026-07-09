@@ -4,6 +4,12 @@
 
 ## 2026-07-09
 
+### 调整 README 展示顺序
+
+- 改动概要：将 README 的 `Web UI 预览` 段落移动到 `运行条件` 前面，让读者先看到界面和报告效果，再阅读安装和运行说明。
+- 验证：运行 `rg -n "^## Web UI 预览|^## 运行条件|^## 启动 Web UI" README.md` 和 `git diff --check README.md PROJECT_LOG.md`。
+- 提交：本次提交。
+
 ### 修复示例报告在线预览曲线渲染
 
 - 改动概要：将 `examples/akquant_ha_report.html` 改为内嵌 Plotly 脚本的自包含 HTML，避免在线预览时因外部 CDN 脚本未加载而看不到权益和回撤曲线；README 同步说明。

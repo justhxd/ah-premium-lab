@@ -15,6 +15,44 @@
 - 本地 Web UI：可在浏览器中提交回测、查看历史运行和结果摘要
 - CLI 工具：可直接构建溢价数据、目标权重并运行回测
 
+## Web UI 预览
+
+下面是一组本地回测示例截图，展示从提交任务到查看历史报告的完整流程。
+
+### 1. 执行台首页
+
+执行台用于选择策略、设置回测区间和初始资金，并实时生成对应命令。默认示例使用完整 AH 池，回测区间为 `2025-07-09` 至 `2026-07-09`，初始资金为 `1,000,000`。
+
+![执行台首页](docs/images/web-ui-console-ready.png)
+
+### 2. 策略执行完成
+
+任务完成后，进度条变为 100%，页面会显示权益曲线，并提供打开输出目录和 AKQuant HTML 报告的入口。
+
+![策略执行完成](docs/images/web-ui-console-complete.png)
+
+### 3. 运行总览
+
+运行总览集中展示当前任务、最近运行时间、可用报告数量和最近任务列表，适合确认回测是否完成以及快速打开报告或输出目录。
+
+![运行总览](docs/images/web-ui-run-overview.png)
+
+### 4. 历史回测
+
+历史回测页会汇总已生成的 AKQuant 策略报告，并支持按策略、回测时长、累计收益率、年化收益率、最大回撤和夏普比率筛选。
+
+![历史回测](docs/images/web-ui-history.png)
+
+示例结果中，`H/A 溢价目标权重` 在 `2025-07-09` 至 `2026-07-09` 区间内的报告摘要为：累计收益率 `80.85%`、年化收益率 `80.85%`、最大回撤 `9.60%`、夏普比率 `2.33`。这些数值只用于说明界面和输出格式，不构成投资建议。
+
+### 5. AKQuant 报告示例
+
+AKQuant HTML 报告会展示回测区间、初始资金、最终权益和关键指标，便于进一步查看策略表现。
+
+![AKQuant 报告示例](docs/images/akquant-report-example.png)
+
+示例报告已提交到仓库：[examples/akquant_ha_report.html](examples/akquant_ha_report.html)。该 HTML 已内嵌 Plotly 脚本和图表数据，不运行项目也能查看权益、回撤等曲线；如果想直接按网页渲染查看，可以打开：[AKQuant 报告在线预览](https://htmlpreview.github.io/?https://github.com/justhxd/ah-premium-lab/blob/main/examples/akquant_ha_report.html)。
+
 ## 运行条件
 
 请先准备：
@@ -74,44 +112,6 @@ http://127.0.0.1:8765/
 ```powershell
 python -m ha_backtest.web --host 127.0.0.1 --port 8765
 ```
-
-## Web UI 预览
-
-下面是一组本地回测示例截图，展示从提交任务到查看历史报告的完整流程。
-
-### 1. 执行台首页
-
-执行台用于选择策略、设置回测区间和初始资金，并实时生成对应命令。默认示例使用完整 AH 池，回测区间为 `2025-07-09` 至 `2026-07-09`，初始资金为 `1,000,000`。
-
-![执行台首页](docs/images/web-ui-console-ready.png)
-
-### 2. 策略执行完成
-
-任务完成后，进度条变为 100%，页面会显示权益曲线，并提供打开输出目录和 AKQuant HTML 报告的入口。
-
-![策略执行完成](docs/images/web-ui-console-complete.png)
-
-### 3. 运行总览
-
-运行总览集中展示当前任务、最近运行时间、可用报告数量和最近任务列表，适合确认回测是否完成以及快速打开报告或输出目录。
-
-![运行总览](docs/images/web-ui-run-overview.png)
-
-### 4. 历史回测
-
-历史回测页会汇总已生成的 AKQuant 策略报告，并支持按策略、回测时长、累计收益率、年化收益率、最大回撤和夏普比率筛选。
-
-![历史回测](docs/images/web-ui-history.png)
-
-示例结果中，`H/A 溢价目标权重` 在 `2025-07-09` 至 `2026-07-09` 区间内的报告摘要为：累计收益率 `80.85%`、年化收益率 `80.85%`、最大回撤 `9.60%`、夏普比率 `2.33`。这些数值只用于说明界面和输出格式，不构成投资建议。
-
-### 5. AKQuant 报告示例
-
-AKQuant HTML 报告会展示回测区间、初始资金、最终权益和关键指标，便于进一步查看策略表现。
-
-![AKQuant 报告示例](docs/images/akquant-report-example.png)
-
-示例报告已提交到仓库：[examples/akquant_ha_report.html](examples/akquant_ha_report.html)。该 HTML 已内嵌 Plotly 脚本和图表数据，不运行项目也能查看权益、回撤等曲线；如果想直接按网页渲染查看，可以打开：[AKQuant 报告在线预览](https://htmlpreview.github.io/?https://github.com/justhxd/ah-premium-lab/blob/main/examples/akquant_ha_report.html)。
 
 ## 命令行用法
 
