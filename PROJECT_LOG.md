@@ -2,6 +2,14 @@
 
 按日期倒序记录每次较大改动的大概内容。每条保持简短，便于之后回看项目演进。
 
+## 2026-07-09
+
+### 补充 README Web UI 示例截图
+
+- 改动概要：新增 `docs/images` 下的 Web UI 截图资产，并在 README 中补充执行台、执行完成、运行总览和历史回测说明；加入一组示例回测指标用于快速理解输出。
+- 验证：运行 `git diff --check README.md PROJECT_LOG.md`，并检查 `docs/images` 截图文件存在。
+- 提交：本次提交。
+
 ## 2026-07-08
 
 ### 优化 GitHub 入门 README
