@@ -4,6 +4,12 @@
 
 ## 2026-07-09
 
+### 提交示例 AKQuant HTML 报告
+
+- 改动概要：新增 `examples/akquant_ha_report.html`，并将 README 中的本地报告链接改为仓库示例文件和在线预览链接，方便未运行项目的用户查看报告内容。
+- 验证：运行 `git diff --check README.md PROJECT_LOG.md`，并检查示例 HTML 文件标题和文件大小。
+- 提交：本次提交。
+
 ### 补充 README AKQuant 报告示例
 
 - 改动概要：新增 AKQuant HTML 报告截图，并在 README 的 Web UI 预览中补充报告示例图和本地报告链接。
